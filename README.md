@@ -83,3 +83,7 @@ A nova arquitetura foi projetada para atender requisitos de **alta disponibilida
 | Monitoramento      | Prometheus + Grafana             |
 | CI/CD              | GitHub Actions                   |
 | Email              | SMTP (SendGrid / Mailtrap)       |
+
+## 📚 Documentações
+
+disponível na pasta [`/docs`](./docs/).
