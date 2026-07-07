@@ -1,4 +1,4 @@
-# FIAP EX Video - Processamento de Vídeos em Escala
+# FIAP Video - Processamento de Vídeos em Escala
 
 ## 📌 Sobre o Projeto
 
