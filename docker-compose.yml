@@ -1,0 +1,20 @@
+services:
+  # Nosso banco de dados relacional
+  database:
+    image: postgres:16-alpine
+    container_name: fiap_postgres
+    environment:
+      POSTGRES_USER: fiap_user
+      POSTGRES_PASSWORD: fiap_password
+      POSTGRES_DB: fiap_x_db
+    ports:
+      - "5432:5432"
+    volumes:
+      # 1. Executa o script SQL para criar as tabelas no primeiro boot
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+      # 2. Persistência real dos dados
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
+    driver: local
