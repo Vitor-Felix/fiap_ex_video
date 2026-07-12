@@ -87,3 +87,17 @@ A nova arquitetura foi projetada para atender requisitos de **alta disponibilida
 ## 📚 Documentações
 
 disponível na pasta [`/docs`](./docs/).
+
+## Rodando a aplicação
+
+### Build da imagem
+docker build -t fiap-x-monolito .
+
+### Rodar o container
+docker run -d -p 8080:8080 --name fiap_video_app fiap-x-monolito
+
+### Acompanhar os logs
+docker logs -f fiap_video_app
+
+### Sobe o PostgreSQL via Docker Compose
+docker compose up -d
