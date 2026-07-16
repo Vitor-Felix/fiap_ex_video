@@ -1,3 +1,5 @@
+# Issues Planning
+
 🏁 Milestone 1: Entendimento e Infraestrutura Base
 Objetivo: Rodar o projeto original, entender o fluxo e preparar o ambiente de banco de dados.
 
