@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"video-processor/database"
 	"video-processor/models"
 	"video-processor/utils"
 )
@@ -24,18 +25,16 @@ func IsValidVideoFile(filename string) bool {
 	return false
 }
 
-// ProcessVideo executa a chamada ao FFmpeg, extrai frames a 1fps e compacta em ZIP
-func ProcessVideo(videoPath, timestamp string) models.ProcessingResult {
-	fmt.Printf("🎬 Iniciando processamento: %s\n", videoPath)
+// ProcessVideo executa a chamada ao FFmpeg, extrai frames e atualiza o status no PostgreSQL via UUID
+func ProcessVideo(videoPath, timestamp, videoID string) models.ProcessingResult {
+	fmt.Printf("🎬 [ID: %s] Iniciando processamento do vídeo\n", videoID)
 
-	// Subindo um nível para achar a pasta "temp" na raiz do projeto
 	tempDir := filepath.Join(utils.BasePath, "temp", timestamp)
 	os.MkdirAll(tempDir, 0755)
-	defer os.RemoveAll(tempDir) // Garante a limpeza da pasta temporária após o zip
+	defer os.RemoveAll(tempDir)
 
 	framePattern := filepath.Join(tempDir, "frame_%04d.png")
 
-	// Dispara o subprocesso do FFmpeg nativo do S.O.
 	cmd := exec.Command("ffmpeg",
 		"-i", videoPath,
 		"-vf", "fps=1",
@@ -45,34 +44,35 @@ func ProcessVideo(videoPath, timestamp string) models.ProcessingResult {
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return models.ProcessingResult{
-			Success: false,
-			Message: fmt.Sprintf("Erro no ffmpeg: %s\nOutput: %s", err.Error(), string(output)),
-		}
+		errMsg := fmt.Sprintf("Erro no ffmpeg: %s\nOutput: %s", err.Error(), string(output))
+		database.UpdateVideoError(videoID, errMsg) // Atualiza banco para ERRO
+		return models.ProcessingResult{Success: false, Message: errMsg}
 	}
 
 	frames, err := filepath.Glob(filepath.Join(tempDir, "*.png"))
 	if err != nil || len(frames) == 0 {
-		return models.ProcessingResult{
-			Success: false,
-			Message: "Nenhum frame foi extraído do vídeo",
-		}
+		errMsg := "Nenhum frame foi extraído do vídeo"
+		database.UpdateVideoError(videoID, errMsg) // Atualiza banco para ERRO
+		return models.ProcessingResult{Success: false, Message: errMsg}
 	}
 
-	fmt.Printf("📸 Extraídos %d frames\n", len(frames))
-
 	zipFilename := fmt.Sprintf("frames_%s.zip", timestamp)
-	zipPath := filepath.Join(utils.BasePath, "outputs", zipFilename) // Salva na pasta da raiz
+	zipPath := filepath.Join(utils.BasePath, "outputs", zipFilename)
 
 	err = CreateZipFile(frames, zipPath)
 	if err != nil {
-		return models.ProcessingResult{
-			Success: false,
-			Message: "Erro ao criar arquivo ZIP: " + err.Error(),
-		}
+		errMsg := "Erro ao criar arquivo ZIP: " + err.Error()
+		database.UpdateVideoError(videoID, errMsg) // Atualiza banco para ERRO
+		return models.ProcessingResult{Success: false, Message: errMsg}
 	}
 
-	fmt.Printf("✅ ZIP criado com sucesso: %s\n", zipPath)
+	// ✅ SE CHEGOU AQUI, DEU TUDO CERTO! Atualiza o banco para CONCLUIDO
+	err = database.UpdateVideoSuccess(videoID, zipFilename, len(frames))
+	if err != nil {
+		fmt.Printf("⚠️ Erro ao atualizar sucesso no banco para ID %s: %v\n", videoID, err)
+	}
+
+	fmt.Printf("✅ [ID: %s] Banco atualizado com sucesso para CONCLUIDO\n", videoID)
 
 	imageNames := make([]string, len(frames))
 	for i, frame := range frames {

@@ -10,13 +10,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	// Ajuste o caminho abaixo conforme o nome do seu módulo no go.mod
+	"video-processor/database"
 	"video-processor/models"
 	"video-processor/services"
 	"video-processor/utils"
 )
 
-// HandleVideoUpload processa o upload e dispara a extração de frames
+// HandleVideoUpload processa o upload, persiste o estado inicial no Postgres e roda o processador
 func HandleVideoUpload(c *gin.Context) {
 	file, header, err := c.Request.FormFile("video")
 	if err != nil {
@@ -38,8 +38,6 @@ func HandleVideoUpload(c *gin.Context) {
 
 	timestamp := time.Now().Format("20060102_150405")
 	filename := fmt.Sprintf("%s_%s", timestamp, header.Filename)
-
-	// Salvando na pasta raiz (voltando um nível da pasta src/)
 	videoPath := filepath.Join(utils.BasePath, "uploads", filename)
 
 	out, err := os.Create(videoPath)
@@ -61,8 +59,19 @@ func HandleVideoUpload(c *gin.Context) {
 		return
 	}
 
-	// Delega o processamento pesado para a camada de serviço dedicada
-	result := services.ProcessVideo(videoPath, timestamp)
+	// Salva a intenção de processamento no PostgreSQL como PROCESSANDO
+	userID := "user_anonimo_123" // Mocado temporariamente para atender sua constraint NOT NULL
+	videoID, err := database.InsertVideo(userID, header.Filename, videoPath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.ProcessingResult{
+			Success: false,
+			Message: "Erro ao registrar processamento no banco: " + err.Error(),
+		})
+		return
+	}
+
+	// Repassa o videoID gerado (UUID) para o serviço atualizar o progresso
+	result := services.ProcessVideo(videoPath, timestamp, videoID)
 
 	if result.Success {
 		os.Remove(videoPath)

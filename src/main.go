@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"video-processor/database"
 	"video-processor/handlers"
 	"video-processor/utils"
 )
@@ -13,6 +14,9 @@ import (
 func main() {
 	// Garante a existência dos diretórios
 	utils.CreateDirs()
+
+	// Inicializa a conexão com o banco de dados
+	database.ConnectDB()
 
 	r := gin.Default()
 
