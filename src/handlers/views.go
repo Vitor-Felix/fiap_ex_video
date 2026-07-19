@@ -1,6 +1,6 @@
 package handlers
 
-// GetHTMLForm retorna o HTML da página inicial do FIAP X
+// GetHTMLForm retorna o HTML da página inicial do FIAP X integrado com o banco de dados
 func GetHTMLForm() string {
 	return `
 <!DOCTYPE html>
@@ -67,12 +67,13 @@ func GetHTMLForm() string {
         }
         .file-item {
             background: #f8f9fa;
-            padding: 10px;
-            margin: 5px 0;
+            padding: 12px;
+            margin: 8px 0;
             border-radius: 5px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border: 1px solid #e9ecef;
         }
         .download-btn {
             background: #28a745;
@@ -83,6 +84,18 @@ func GetHTMLForm() string {
             font-size: 14px;
         }
         .download-btn:hover { background: #218838; }
+        
+        /* Badges de Status adicionadas para o Histórico Real */
+        .status-badge {
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .status-PROCESSANDO { background: #fff3cd; color: #856404; }
+        .status-CONCLUIDO { background: #d4edda; color: #155724; }
+        .status-ERRO { background: #f8d7da; color: #721c24; }
     </style>
 </head>
 <body>
@@ -106,8 +119,8 @@ func GetHTMLForm() string {
         <div class="result" id="result"></div>
         
         <div class="files-list">
-            <h3>📁 Arquivos Processados:</h3>
-            <div id="filesList">Carregando...</div>
+            <h3>📊 Seu Histórico de Processamento (Banco de Dados):</h3>
+            <div id="filesList">Carregando histórico...</div>
         </div>
     </div>
 
@@ -169,38 +182,48 @@ func GetHTMLForm() string {
             document.getElementById('loading').style.display = show ? 'block' : 'none';
         }
         
+        // Nova função loadFilesList conectada à nossa API do Postgres
         async function loadFilesList() {
             try {
-                const response = await fetch('/api/status');
-                const data = await response.json();
+                const response = await fetch('/api/videos');
+                const videos = await response.json();
                 
                 const filesList = document.getElementById('filesList');
                 
-                if (data.files && data.files.length > 0) {
-                    filesList.innerHTML = data.files.map(file => 
-                        '<div class="file-item">' +
-                        '<span>' + file.filename + ' (' + formatFileSize(file.size) + ') - ' + file.created_at + '</span>' +
-                        '<a href="' + file.download_url + '" class="download-btn">⬇️ Download</a>' +
-                        '</div>'
-                    ).join('');
+                if (videos && videos.length > 0) {
+                    filesList.innerHTML = videos.map(video => {
+                        let actionHtml = '';
+                        
+                        // Decide o botão ou mensagem dependendo do status vindo do Postgres
+                        if (video.status === 'CONCLUIDO') {
+                            actionHtml = '<a href="/download/' + video.zip_path + '" class="download-btn">⬇️ Download ZIP</a>';
+                        } else if (video.status === 'ERRO') {
+                            actionHtml = '<span style="color: #721c24; font-size: 13px;" title="' + (video.error_message || '') + '">⚠️ Falhou (Passe o mouse)</span>';
+                        } else {
+                            actionHtml = '<span style="color: #666; font-size: 13px;">⏳ Processando...</span>';
+                        }
+
+                        return '<div class="file-item">' +
+                            '<div>' +
+                                '<strong>' + video.original_name + '</strong>' +
+                                '<span class="status-badge status-' + video.status + '">' + video.status + '</span>' +
+                            '</div>' +
+                            '<div>' + actionHtml + '</div>' +
+                            '</div>';
+                    }).join('');
                 } else {
-                    filesList.innerHTML = '<p>Nenhum arquivo processado ainda.</p>';
+                    filesList.innerHTML = '<p>Nenhum vídeo processado ainda.</p>';
                 }
             } catch (error) {
-                document.getElementById('filesList').innerHTML = '<p>Erro ao carregar arquivos.</p>';
+                document.getElementById('filesList').innerHTML = '<p>Erro ao carregar arquivos do banco de dados.</p>';
             }
-        }
-        
-        function formatFileSize(bytes) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
         
         // Carregar lista de arquivos ao inicializar
         loadFilesList();
+
+        // Configura Polling para atualizar o histórico a cada 5 segundos de forma silenciosa
+        setInterval(loadFilesList, 5000);
     </script>
 </body>
 </html>`

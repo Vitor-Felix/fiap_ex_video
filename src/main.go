@@ -47,6 +47,7 @@ func main() {
 	r.POST("/upload", handlers.HandleVideoUpload)
 	r.GET("/download/:filename", handlers.HandleDownload)
 	r.GET("/api/status", handlers.HandleStatus)
+	r.GET("/api/videos", handlers.HandleListVideos)
 
 	fmt.Println("🎬 Servidor iniciado na porta 8080")
 	fmt.Println("📂 Acesse: http://localhost:8080")

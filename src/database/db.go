@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"video-processor/models"
 
 	_ "github.com/lib/pq" // Driver do PostgreSQL anotado de forma anônima
 )
@@ -80,4 +81,31 @@ func UpdateVideoError(id string, errorMessage string) error {
 
 	_, err := DB.Exec(query, errorMessage, id)
 	return err
+}
+
+// GetVideosByWithUser busca o histórico de tarefas do usuário fictício
+func GetVideosByUser(userID string) ([]models.Video, error) {
+	query := `
+		SELECT id, user_id, original_name, storage_path, COALESCE(zip_path, ''), frame_count, status, COALESCE(error_message, ''), created_at, updated_at 
+		FROM videos 
+		WHERE user_id = $1 
+		ORDER BY created_at DESC`
+
+	rows, err := DB.Query(query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var videos []models.Video
+	for rows.Next() {
+		var v models.Video
+		err := rows.Scan(&v.ID, &v.UserID, &v.OriginalName, &v.StoragePath, &v.ZipPath, &v.FrameCount, &v.Status, &v.ErrorMessage, &v.CreatedAt, &v.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		videos = append(videos, v)
+	}
+
+	return videos, nil
 }
