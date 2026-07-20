@@ -38,11 +38,18 @@ func TestHandleDownload_Success(t *testing.T) {
 	// Setup do ambiente: Criamos um arquivo falso na pasta outputs para o teste
 	utils.BasePath = "./"
 	outDir := filepath.Join(utils.BasePath, "outputs")
-	os.MkdirAll(outDir, 0755)
-	defer os.RemoveAll(outDir) // Limpa a sujeira no final do teste!
+
+	if err := os.MkdirAll(outDir, 0755); err != nil {
+		t.Fatalf("Erro ao criar diretório de teste: %v", err)
+	}
+
+	defer os.RemoveAll(outDir)
 
 	fakeZip := filepath.Join(outDir, "video_teste.zip")
-	os.WriteFile(fakeZip, []byte("conteudo fake do zip"), 0644)
+
+	if err := os.WriteFile(fakeZip, []byte("conteudo fake do zip"), 0644); err != nil {
+		t.Fatalf("Erro ao criar arquivo fake: %v", err)
+	}
 
 	// Setup do roteador
 	handler := &Handler{}
