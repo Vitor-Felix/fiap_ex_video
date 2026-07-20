@@ -11,7 +11,7 @@ Status: Concluído. Entendido o uso do ffmpeg e geração do ZIP.
 
 Status: Concluído. Instância do Postgres configurada via Docker.
 
-[ ] Issue 1.3: Estrutura Hexagonal, Gitflow e Testes Iniciais
+[x] Issue 1.3: Estrutura Hexagonal, Gitflow e Testes Iniciais
 
 O que fazer: Reorganizar as pastas do Go para simular uma Arquitetura Hexagonal simples (domain/entities, ports/, adapters/). Criar as branches padrão master e develop. Escrever um teste unitário básico em Go (ex: validação do formato do arquivo ou tamanho permitido).
 
