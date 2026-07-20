@@ -65,4 +65,3 @@ func main() {
 
 	log.Fatal(r.Run(":8080"))
 }
-// CI Pipeline test
