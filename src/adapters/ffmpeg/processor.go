@@ -22,11 +22,15 @@ func (p *Processor) ProcessVideo(
 	videoPath string,
 	timestamp string,
 	videoID string,
-) dto.ProcessingResult {
+) (dto.ProcessingResult, error) {
 	fmt.Printf("🎬 [ID: %s] Iniciando processamento do vídeo no FFmpeg\n", videoID)
 
 	tempDir := filepath.Join(utils.BasePath, "temp", timestamp)
-	os.MkdirAll(tempDir, 0755)
+
+	if err := os.MkdirAll(tempDir, 0755); err != nil {
+		return dto.ProcessingResult{}, fmt.Errorf("erro ao criar diretório temporário: %w", err)
+	}
+
 	defer os.RemoveAll(tempDir)
 
 	framePattern := filepath.Join(tempDir, "frame_%04d.png")
@@ -41,13 +45,13 @@ func (p *Processor) ProcessVideo(
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		errMsg := fmt.Sprintf("Erro no ffmpeg: %s\nOutput: %s", err.Error(), string(output))
-		return dto.ProcessingResult{Success: false, Message: errMsg}
+		return dto.ProcessingResult{Success: false, Message: errMsg}, nil
 	}
 
 	frames, err := filepath.Glob(filepath.Join(tempDir, "*.png"))
 	if err != nil || len(frames) == 0 {
 		errMsg := "Nenhum frame foi extraído do vídeo"
-		return dto.ProcessingResult{Success: false, Message: errMsg}
+		return dto.ProcessingResult{Success: false, Message: errMsg}, nil
 	}
 
 	zipFilename := fmt.Sprintf("frames_%s.zip", timestamp)
@@ -56,7 +60,7 @@ func (p *Processor) ProcessVideo(
 	err = CreateZipFile(frames, zipPath)
 	if err != nil {
 		errMsg := "Erro ao criar arquivo ZIP: " + err.Error()
-		return dto.ProcessingResult{Success: false, Message: errMsg}
+		return dto.ProcessingResult{Success: false, Message: errMsg}, nil
 	}
 
 	imageNames := make([]string, len(frames))
@@ -70,5 +74,5 @@ func (p *Processor) ProcessVideo(
 		ZipPath:    zipFilename,
 		FrameCount: len(frames),
 		Images:     imageNames,
-	}
+	}, nil
 }

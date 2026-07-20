@@ -17,11 +17,18 @@ func TestHandleStatus_Success(t *testing.T) {
 	// Setup: Criamos uma pasta e um zip falso para ser listado
 	utils.BasePath = "./"
 	outDir := filepath.Join(utils.BasePath, "outputs")
-	os.MkdirAll(outDir, 0755)
+
+	if err := os.MkdirAll(outDir, 0755); err != nil {
+		t.Fatalf("Erro ao criar diretório de teste: %v", err)
+	}
+
 	defer os.RemoveAll(outDir)
 
 	fakeZip := filepath.Join(outDir, "teste_status.zip")
-	os.WriteFile(fakeZip, []byte("conteúdo fake"), 0644)
+
+	if err := os.WriteFile(fakeZip, []byte("conteúdo fake"), 0644); err != nil {
+		t.Fatalf("Erro ao criar arquivo fake: %v", err)
+	}
 
 	handler := &Handler{}
 	r := gin.Default()
