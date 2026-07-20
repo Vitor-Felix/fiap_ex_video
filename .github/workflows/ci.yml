@@ -1,0 +1,52 @@
+name: FIAP X - CI Pipeline
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - master
+
+jobs:
+  lint-and-test:
+    name: Lint & Test (Go ${{ matrix.go-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ['1.22'] # Versão estável atual para Hackathon
+
+    steps:
+      # 1. Checkout do código
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 2. Setup do Go (cache automático de módulos)
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache-dependency-path: src/go.sum
+
+      # 3. Linting Estático (análogo ao flake8 do Python)
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          working-directory: src
+          args: --timeout=3m --verbose
+
+      # 4. Testes Unitários com Race Detector
+      - name: Run Unit Tests
+        working-directory: src
+        run: |
+          go test ./... -v -race -coverprofile=coverage.out -covermode=atomic
+      
+      # 5. Exibir Cobertura de Testes no Console
+      - name: Coverage Report
+        working-directory: src
+        run: go tool cover -func=coverage.out
+
+      # 6. (Opcional) Upload do coverage para análise posterior
+      - name: Upload Coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: src/coverage.out
