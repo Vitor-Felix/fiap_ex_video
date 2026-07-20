@@ -1,4 +1,4 @@
-package handlers
+package web
 
 import (
 	"net/http"
@@ -10,7 +10,7 @@ import (
 )
 
 // HandleStatus lista os arquivos processados e metadados
-func HandleStatus(c *gin.Context) {
+func (h *Handler) HandleStatus(c *gin.Context) {
 	// Buscando na pasta raiz voltando um nível
 	files, err := filepath.Glob(filepath.Join(utils.BasePath, "outputs", "*.zip"))
 	if err != nil {

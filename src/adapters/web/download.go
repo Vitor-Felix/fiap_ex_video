@@ -1,4 +1,4 @@
-package handlers
+package web
 
 import (
 	"net/http"
@@ -10,7 +10,7 @@ import (
 )
 
 // HandleDownload gerencia o download dos arquivos .zip gerados
-func HandleDownload(c *gin.Context) {
+func (h *Handler) HandleDownload(c *gin.Context) {
 	filename := c.Param("filename")
 	// Como o app roda dentro de src/, voltamos um nível para achar a pasta outputs na raiz
 	filePath := filepath.Join(utils.BasePath, "outputs", filename)

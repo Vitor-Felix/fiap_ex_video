@@ -1,7 +1,7 @@
-package handlers
+package web
 
 // GetHTMLForm retorna o HTML da página inicial do FIAP X integrado com o banco de dados
-func GetHTMLForm() string {
+func (h *Handler) GetHTMLForm() string {
 	return `
 <!DOCTYPE html>
 <html lang="pt-BR">

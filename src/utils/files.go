@@ -3,6 +3,7 @@ package utils
 import (
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // BasePath guarda o prefixo do caminho ("" se rodando da raiz, "../" se rodando de /src)
@@ -36,4 +37,17 @@ func CreateDirs() {
 	for _, dir := range dirs {
 		os.MkdirAll(dir, 0755)
 	}
+} // 👈 ESSA CHAVE AQUI ESTAVA FALTANDO!
+
+// IsValidVideoFile valida se a extensão do arquivo é aceita pelo processador
+func IsValidVideoFile(filename string) bool {
+	ext := strings.ToLower(filepath.Ext(filename))
+	validExts := []string{".mp4", ".avi", ".mov", ".mkv", ".wmv", ".flv", ".webm"}
+
+	for _, validExt := range validExts {
+		if ext == validExt {
+			return true
+		}
+	}
+	return false
 }

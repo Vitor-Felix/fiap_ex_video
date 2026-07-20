@@ -6,17 +6,30 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"video-processor/database"
-	"video-processor/handlers"
+	"video-processor/adapters/ffmpeg"
+	"video-processor/adapters/persistence/postgres"
+	"video-processor/adapters/web"
+	"video-processor/application"
 	"video-processor/utils"
 )
 
 func main() {
-	// Garante a existência dos diretórios
 	utils.CreateDirs()
 
-	// Inicializa a conexão com o banco de dados
-	database.ConnectDB()
+	// 1. Inicia o Adaptador de Banco de Dados
+	repo, err := postgres.NewRepository()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// 2. Inicia o Adaptador de Processamento de Vídeo (FFmpeg)
+	videoProcessor := ffmpeg.NewProcessor()
+
+	// 3. Inicia a Regra de Negócio (Application Service), injetando as Portas (Adapters)
+	videoService := application.NewVideoService(repo, videoProcessor)
+
+	// 4. Inicia o Adaptador Web, injetando o banco e o service
+	handler := web.NewHandler(repo, videoService)
 
 	r := gin.Default()
 
@@ -34,20 +47,18 @@ func main() {
 		c.Next()
 	})
 
-	// Servir arquivos estáticos (referenciando as pastas que estão um nível acima)
 	r.Static("/uploads", utils.BasePath+"uploads")
 	r.Static("/outputs", utils.BasePath+"outputs")
 
-	// Rotas da aplicação delegadas para os handlers
 	r.GET("/", func(c *gin.Context) {
 		c.Header("Content-Type", "text/html")
-		c.String(200, handlers.GetHTMLForm())
+		c.String(200, handler.GetHTMLForm())
 	})
 
-	r.POST("/upload", handlers.HandleVideoUpload)
-	r.GET("/download/:filename", handlers.HandleDownload)
-	r.GET("/api/status", handlers.HandleStatus)
-	r.GET("/api/videos", handlers.HandleListVideos)
+	r.POST("/upload", handler.HandleVideoUpload)
+	r.GET("/download/:filename", handler.HandleDownload)
+	r.GET("/api/status", handler.HandleStatus)
+	r.GET("/api/videos", handler.HandleListVideos)
 
 	fmt.Println("🎬 Servidor iniciado na porta 8080")
 	fmt.Println("📂 Acesse: http://localhost:8080")

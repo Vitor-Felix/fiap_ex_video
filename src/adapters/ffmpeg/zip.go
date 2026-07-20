@@ -1,4 +1,4 @@
-package services
+package ffmpeg
 
 import (
 	"archive/zip"
