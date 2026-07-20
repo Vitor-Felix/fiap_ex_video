@@ -32,7 +32,20 @@ func (s *VideoService) ProcessUpload(userID, filename, videoPath, timestamp stri
 	}
 
 	// 2. Chama o motor de processamento de forma isolada
-	result := s.processor.ProcessVideo(videoPath, timestamp, videoID)
+	result, err := s.processor.ProcessVideo(videoPath, timestamp, videoID)
+	if err != nil {
+		// Erro de infraestrutura (ex: falha ao criar diretório)
+		errorMsg := "Erro interno no processador: " + err.Error()
+
+		if updateErr := s.repo.UpdateVideoError(videoID, errorMsg); updateErr != nil {
+			fmt.Printf("⚠️ Erro ao atualizar erro no banco para ID %s: %v\n", videoID, updateErr)
+		}
+
+		return dto.ProcessingResult{
+			Success: false,
+			Message: errorMsg,
+		}
+	}
 
 	// 3. Atualiza o banco com base no resultado do processador
 	if result.Success {
@@ -43,7 +56,9 @@ func (s *VideoService) ProcessUpload(userID, filename, videoPath, timestamp stri
 			fmt.Printf("✅ [ID: %s] Banco atualizado com sucesso para CONCLUIDO\n", videoID)
 		}
 	} else {
-		s.repo.UpdateVideoError(videoID, result.Message)
+		if updateErr := s.repo.UpdateVideoError(videoID, result.Message); updateErr != nil {
+			fmt.Printf("⚠️ Erro ao atualizar erro no banco para ID %s: %v\n", videoID, updateErr)
+		}
 	}
 
 	return result

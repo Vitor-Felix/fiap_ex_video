@@ -30,14 +30,13 @@ func (f *fakeRepo) GetVideosByUser(userID string) ([]entities.Video, error) {
 // fakeProcessor simula o FFmpeg
 type fakeProcessor struct{}
 
-func (f *fakeProcessor) ProcessVideo(videoPath, timestamp, videoID string) dto.ProcessingResult {
-	// Retorna um sucesso fixo para enganar o Service
+func (f *fakeProcessor) ProcessVideo(videoPath, timestamp, videoID string) (dto.ProcessingResult, error) {
 	return dto.ProcessingResult{
 		Success:    true,
 		Message:    "Mock concluído",
 		ZipPath:    "frames_fake.zip",
 		FrameCount: 10,
-	}
+	}, nil
 }
 
 // ==========================================

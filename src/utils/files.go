@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -35,9 +36,11 @@ func CreateDirs() {
 		filepath.Join(BasePath, "temp"),
 	}
 	for _, dir := range dirs {
-		os.MkdirAll(dir, 0755)
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			fmt.Printf("⚠️ Erro ao criar diretório %s: %v\n", dir, err)
+		}
 	}
-} // 👈 ESSA CHAVE AQUI ESTAVA FALTANDO!
+}
 
 // IsValidVideoFile valida se a extensão do arquivo é aceita pelo processador
 func IsValidVideoFile(filename string) bool {
