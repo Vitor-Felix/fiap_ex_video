@@ -72,16 +72,29 @@ Suíte de testes sem frameworks externos (`testing` e `net/http/httptest`) focad
       └── static/
           ├── app.js
           └── index.html
+  ```
+
+🕒 [FASE 6] - API Gateway & Isolamento de Rede (Issue 3.1 Concluída)
+
+🚪 Implementação do API Gateway (Nginx)
+- Configuração do serviço `gateway` no `docker-compose.yml` utilizando Nginx como proxy reverso.
+- Roteamento centralizado: O Nginx expõe a porta `8080` ao host e intercepta o tráfego repassando-o para a rede interna do Docker (`http://api:8080`).
+- Isolamento do Backend: A API Go deixou de expor portas públicas, reforçando a segurança e viabilizando arquitetura de microsserviços.
+
+🐳 Refatoração do Container da API
+- `Dockerfile` atualizado: Estágio de build atualizado para `golang:1.25-alpine` resolvendo conflito com `go.mod`.
+- Servimento de arquivos estáticos: Adicionada a instrução `COPY web/ /app/web/` no estágio final da imagem Docker, garantindo que o Nginx consiga servir a SPA via Go.
 
 💡 Instruções Importantes para a Próxima IA / Desenvolvedor:
 
-Ponto de Execução do Servidor: A aplicação deve sempre ser iniciada a partir da raiz do repositório para evitar inconsistências nos caminhos de arquivos estáticos e diretórios do sistema:
+- Execução Padrão Via Docker Compose (Substitui `go run`):
+  ```bash
+  docker compose up --build -d
+  ```
+- O frontend agora deve ser acessado **apenas** através do gateway em: `http://localhost:8080`
+- Execução dos Testes: Todos os testes continuam passando. Execute via:
+  ```bash
+  cd src && go test ./...
+  ```
 
-Bash
-cd ~/vitorfelix-git/fiap/fiap_ex_video
-go run src/main.go
-Execução dos Testes: Todos os testes continuam passando. Execute via:
-
-Bash
-cd src && go test ./...
-Próxima Etapa do Projeto: O sistema está 100% funcional de ponta a ponta, seguro e autenticado. O próximo passo recomendado é Issue 2.3: Processamento Assíncrono com Worker Pool / Goroutines, focando em otimizar a fila de conversão de vídeos para que múltiplos uploads não travem a thread HTTP principal.
+Próxima Etapa do Projeto (Milestone 3): A base de microsserviço com gateway está montada. O próximo passo oficial é a **Issue 3.2: Subir o RabbitMQ e Criar a Fila**.

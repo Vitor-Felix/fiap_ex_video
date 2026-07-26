@@ -1,5 +1,5 @@
 services:
-  # Nosso banco de dados relacional
+  # 1. Banco de Dados PostgreSQL
   database:
     image: postgres:16-alpine
     container_name: fiap_postgres
@@ -10,10 +10,44 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      # 1. Executa o script SQL para criar as tabelas no primeiro boot
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
-      # 2. Persistência real dos dados
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fiap_user -d fiap_x_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. Backend Go (API) - Não expõe portas diretamente para o host
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fiap_api
+    environment:
+      - DB_HOST=database
+      - DB_PORT=5432
+      - DB_USER=fiap_user
+      - DB_PASSWORD=fiap_password
+      - DB_NAME=fiap_x_db
+    depends_on:
+      database:
+        condition: service_healthy
+    volumes:
+      - ./uploads:/app/uploads
+      - ./outputs:/app/outputs
+      - ./temp:/app/temp
+
+  # 3. API Gateway (Nginx) - Única porta de entrada exposta (8080)
+  gateway:
+    image: nginx:alpine
+    container_name: fiap_gateway
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - api
 
 volumes:
   pgdata:
