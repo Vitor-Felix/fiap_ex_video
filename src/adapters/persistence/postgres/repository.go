@@ -120,7 +120,7 @@ func (r *Repository) GetVideosByUser(userID string) ([]entities.Video, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var videos []entities.Video
 
@@ -146,4 +146,30 @@ func (r *Repository) GetVideosByUser(userID string) ([]entities.Video, error) {
 	}
 
 	return videos, nil
+}
+
+// GetUserByUsername busca um usuário pelo username.
+func (r *Repository) GetUserByUsername(username string) (*entities.User, error) {
+	query := `
+		SELECT id,
+		       username,
+		       password_hash,
+		       created_at
+		FROM users
+		WHERE username = $1`
+
+	var user entities.User
+
+	err := r.db.QueryRow(query, username).Scan(
+		&user.ID,
+		&user.Username,
+		&user.PasswordHash,
+		&user.CreatedAt,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }

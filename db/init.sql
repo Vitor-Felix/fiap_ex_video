@@ -1,20 +1,52 @@
 -- db/init.sql
 
--- Criação de um tipo ENUM para garantir a integridade dos estados no banco
-CREATE TYPE video_status AS ENUM ('PENDENTE', 'PROCESSANDO', 'CONCLUIDO', 'ERRO');
+-- Habilita funções de geração de UUID
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
+-- Criação do ENUM responsável pelos estados do processamento
+CREATE TYPE video_status AS ENUM (
+    'PENDENTE',
+    'PROCESSANDO',
+    'CONCLUIDO',
+    'ERRO'
+);
+
+-- =====================================================
+-- Tabela de usuários
+-- =====================================================
+CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    username VARCHAR(100) NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =====================================================
+-- Tabela de vídeos
+-- =====================================================
 CREATE TABLE IF NOT EXISTS videos (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id VARCHAR(255) NOT NULL,
+
+    -- Dono do vídeo
+    user_id UUID NOT NULL,
+
     original_name VARCHAR(255) NOT NULL,
     storage_path VARCHAR(512) NOT NULL,
     zip_path VARCHAR(512),
-    frame_count INT DEFAULT 0, -- Adicionado para casar com a lógica de extração
+    frame_count INT DEFAULT 0,
+
     status video_status DEFAULT 'PENDENTE',
     error_message TEXT,
+
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_videos_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE
 );
 
--- Índice para acelerar a busca de vídeos por usuário
-CREATE INDEX IF NOT EXISTS idx_videos_user_id ON videos(user_id);
+-- Índice para acelerar buscas por usuário
+CREATE INDEX IF NOT EXISTS idx_videos_user_id
+ON videos(user_id);

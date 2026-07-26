@@ -33,7 +33,7 @@ func TestHandleListVideos_Success(t *testing.T) {
 	// Setup: Instanciamos o handler injetando o repositório fake
 	// Como estamos no mesmo pacote, acessamos h.repo diretamente
 	handler := &Handler{
-		repo: &fakeWebRepo{},
+		videoRepo: &fakeWebRepo{},
 	}
 
 	r := gin.Default()

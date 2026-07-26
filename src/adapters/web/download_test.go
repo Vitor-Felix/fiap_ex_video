@@ -43,7 +43,7 @@ func TestHandleDownload_Success(t *testing.T) {
 		t.Fatalf("Erro ao criar diretório de teste: %v", err)
 	}
 
-	defer os.RemoveAll(outDir)
+	defer func() { _ = os.RemoveAll(outDir) }()
 
 	fakeZip := filepath.Join(outDir, "video_teste.zip")
 
