@@ -17,7 +17,7 @@ O que fazer: Reorganizar as pastas do Go para simular uma Arquitetura Hexagonal 
 
 Foco de Avaliação FIAP: Arquitetura de Software (Clean Architecture/Hexagonal) e Qualidade de Software.
 
-[ ] Issue 1.4: Pipeline de CI com GitHub Actions
+[x] Issue 1.4: Pipeline de CI com GitHub Actions
 
 O que fazer: Criar o arquivo .github/workflows/ci.yml. Configurar para disparar a cada Pull Request aberto contra a branch develop, executando automaticamente o comando go test ./.... Configurar proteção de branch no GitHub.
 
@@ -30,7 +30,7 @@ Objetivo: Garantir que o monolito inicial persista dados e autentique usuários 
 
 Status: Concluído. O upload agora registra no banco e a listagem HTML lê os status reais (PENDENTE, PROCESSANDO, CONCLUIDO, ERRO) via polling assíncrono.
 
-[ ] Issue 2.2: Implementar Autenticação de Usuário (JWT)
+[x] Issue 2.2: Implementar Autenticação de Usuário (JWT)
 
 O que fazer: Criar uma tabela simples de usuários no Postgres. Desenvolver a rota de /login que valida as credenciais e devolve um token JWT. Proteger as rotas de upload e histórico para que o usuário autenticado acesse apenas os seus próprios registros.
 

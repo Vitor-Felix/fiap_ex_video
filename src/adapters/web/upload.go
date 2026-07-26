@@ -59,9 +59,9 @@ func (h *Handler) HandleVideoUpload(c *gin.Context) {
 		return
 	}
 
-	userID := "user_anonimo_123"
+	userID := c.GetString("user_id")
 
-	result := h.service.ProcessUpload(userID, header.Filename, videoPath, timestamp)
+	result := h.videoService.ProcessUpload(userID, header.Filename, videoPath, timestamp)
 
 	// Se a regra de negócio foi executada com sucesso, limpamos o vídeo original
 	if result.Success {

@@ -8,9 +8,9 @@ import (
 
 // HandleListVideos retorna o histórico de tarefas em formato JSON
 func (h *Handler) HandleListVideos(c *gin.Context) {
-	userID := "user_anonimo_123" // O mesmo ID mocado do upload
+	userID := c.GetString("user_id")
 
-	videos, err := h.repo.GetVideosByUser(userID)
+	videos, err := h.videoRepo.GetVideosByUser(userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao buscar histórico: " + err.Error()})
 		return
