@@ -18,7 +18,26 @@ services:
       timeout: 5s
       retries: 5
 
-  # 2. Backend Go (API) - Não expõe portas diretamente para o host
+  # 2. RabbitMQ
+  rabbitmq:
+    image: rabbitmq:4-management
+    container_name: fiap_rabbitmq
+    hostname: rabbitmq
+    ports:
+      - "5672:5672"    # Comunicação AMQP
+      - "15672:15672"  # Interface Web
+    environment:
+      RABBITMQ_DEFAULT_USER: fiap
+      RABBITMQ_DEFAULT_PASS: fiap
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 3. Backend Go (API)
   api:
     build:
       context: .
@@ -33,12 +52,14 @@ services:
     depends_on:
       database:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     volumes:
       - ./uploads:/app/uploads
       - ./outputs:/app/outputs
       - ./temp:/app/temp
 
-  # 3. API Gateway (Nginx) - Única porta de entrada exposta (8080)
+  # 4. API Gateway (Nginx)
   gateway:
     image: nginx:alpine
     container_name: fiap_gateway
@@ -51,4 +72,7 @@ services:
 
 volumes:
   pgdata:
+    driver: local
+
+  rabbitmq_data:
     driver: local
