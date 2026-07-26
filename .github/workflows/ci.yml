@@ -28,7 +28,7 @@ jobs:
 
       # 3. Linting Estático (análogo ao flake8 do Python)
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v7
         with:
           working-directory: src
           args: --timeout=3m --verbose
