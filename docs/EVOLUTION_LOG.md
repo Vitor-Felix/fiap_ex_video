@@ -76,25 +76,116 @@ Suíte de testes sem frameworks externos (`testing` e `net/http/httptest`) focad
 
 🕒 [FASE 6] - API Gateway & Isolamento de Rede (Issue 3.1 Concluída)
 
-🚪 Implementação do API Gateway (Nginx)
-- Configuração do serviço `gateway` no `docker-compose.yml` utilizando Nginx como proxy reverso.
-- Roteamento centralizado: O Nginx expõe a porta `8080` ao host e intercepta o tráfego repassando-o para a rede interna do Docker (`http://api:8080`).
-- Isolamento do Backend: A API Go deixou de expor portas públicas, reforçando a segurança e viabilizando arquitetura de microsserviços.
+🚪 API Gateway (Nginx)
 
-🐳 Refatoração do Container da API
-- `Dockerfile` atualizado: Estágio de build atualizado para `golang:1.25-alpine` resolvendo conflito com `go.mod`.
-- Servimento de arquivos estáticos: Adicionada a instrução `COPY web/ /app/web/` no estágio final da imagem Docker, garantindo que o Nginx consiga servir a SPA via Go.
+Introdução do serviço gateway.
+Porta pública concentrada em localhost:8080.
+Backend Go deixou de expor portas diretamente ao host.
+Comunicação interna realizada através da rede Docker.
 
-💡 Instruções Importantes para a Próxima IA / Desenvolvedor:
+🐳 Container da API
 
-- Execução Padrão Via Docker Compose (Substitui `go run`):
-  ```bash
-  docker compose up --build -d
-  ```
-- O frontend agora deve ser acessado **apenas** através do gateway em: `http://localhost:8080`
-- Execução dos Testes: Todos os testes continuam passando. Execute via:
-  ```bash
-  cd src && go test ./...
-  ```
+Atualização do Dockerfile para golang:1.25-alpine.
+Inclusão dos assets do frontend na imagem (COPY web/ /app/web/).
 
-Próxima Etapa do Projeto (Milestone 3): A base de microsserviço com gateway está montada. O próximo passo oficial é a **Issue 3.2: Subir o RabbitMQ e Criar a Fila**.
+🕒 [FASE 7] - Infraestrutura de Mensageria (Issue 3.2 Concluída)
+
+📨 Introdução do RabbitMQ
+
+A arquitetura foi preparada para evoluir de processamento síncrono para processamento assíncrono através de mensageria.
+
+docker-compose.yml (Modificado)
+
+Novo serviço:
+
+rabbitmq:4-management
+
+Configurações adicionadas:
+
+Interface administrativa (15672)
+Porta AMQP (5672)
+Usuário e senha padrão para desenvolvimento
+Volume persistente (rabbitmq_data)
+Health Check utilizando rabbitmq-diagnostics
+Hostname interno rabbitmq
+
+A API também passou a aguardar o RabbitMQ ficar saudável (depends_on) antes da inicialização.
+
+🏗️ Mudança Arquitetural
+
+Até esta etapa, a arquitetura ficou organizada da seguinte forma:
+
+                Usuário
+                    │
+                    ▼
+             Nginx Gateway
+                    │
+                    ▼
+                API Go
+               /      \
+              ▼        ▼
+        PostgreSQL   RabbitMQ
+
+O RabbitMQ foi incorporado apenas como componente de infraestrutura.
+
+Nenhuma regra de negócio foi alterada nesta Issue.
+
+A API continua executando o FFmpeg localmente e o fluxo permanece síncrono.
+
+📚 Conceitos consolidados durante esta etapa
+
+Foi estabelecido o desenho arquitetural que será utilizado nas próximas Issues:
+
+A API Go atuará como Producer.
+O Worker atuará como Consumer.
+O RabbitMQ será responsável apenas pelo transporte de mensagens.
+O PostgreSQL continuará sendo a fonte de verdade do estado da aplicação.
+A mensagem enviada ao RabbitMQ conterá apenas os dados necessários para localizar o trabalho (ex.: video_id), nunca o vídeo em si.
+
+Também foi discutido o papel do RabbitMQ em arquiteturas distribuídas:
+
+desacoplamento entre serviços;
+comunicação assíncrona;
+possibilidade de múltiplos Workers;
+escalabilidade horizontal;
+mecanismo de confirmação (ACK) para evitar perda de mensagens.
+
+💡 Instruções Importantes para a Próxima IA / Desenvolvedor
+
+Ambiente atualizado:
+
+docker compose up --build -d
+
+Serviços esperados:
+
+fiap_gateway
+fiap_api
+fiap_postgres
+fiap_rabbitmq
+
+Interface administrativa do RabbitMQ:
+
+http://localhost:15672
+
+Credenciais:
+
+Usuário: fiap
+Senha: fiap
+
+Testes continuam sendo executados normalmente:
+
+cd src
+go test ./...
+Próxima Etapa Oficial
+Issue 3.3 — Transformar a API Go em Producer
+
+Objetivo:
+
+Remover o processamento síncrono da API.
+Após o upload:
+persistir o vídeo como PENDENTE;
+publicar uma mensagem (video_id) no RabbitMQ;
+retornar imediatamente HTTP 202 Accepted.
+O processamento via FFmpeg deixará de ocorrer na API e será migrado para o Worker na Milestone 4.
+
+Observação importante para a próxima IA: nesta etapa ainda não existe Consumer. O foco será exclusivamente integrar a API Go ao RabbitMQ, declarar a fila (QueueDeclare) e publicar mensagens (Publish) utilizando um cliente AMQP. O Worker será implementado apenas na Issue 4.1.

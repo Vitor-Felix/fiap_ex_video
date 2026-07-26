@@ -39,7 +39,7 @@ Foco de Avaliação FIAP: Requisitos Funcionais de Segurança (Sistema protegido
 🔀 Milestone 3: Gateway, Desacoplamento e Mensageria
 Objetivo: Criar a porta de entrada única do ecossistema e separar o recebimento do vídeo do processamento real para suportar picos de carga.
 
-[ ] Issue 3.1: Configurar o API Gateway
+[x] Issue 3.1: Configurar o API Gateway
 
 O que fazer: Adicionar um serviço de API Gateway leve (como Nginx ou KrakenD) no docker-compose.yml. Configurar o Gateway na porta padrão (ex: :8080) para interceptar e rotear o tráfego do frontend para a API interna em Go. O frontend deixa de falar diretamente com o microsserviço de backend.
 
