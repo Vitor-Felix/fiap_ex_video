@@ -31,7 +31,7 @@ func (p *Processor) ProcessVideo(
 		return dto.ProcessingResult{}, fmt.Errorf("erro ao criar diretório temporário: %w", err)
 	}
 
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	framePattern := filepath.Join(tempDir, "frame_%04d.png")
 

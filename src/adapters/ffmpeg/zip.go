@@ -13,16 +13,28 @@ func CreateZipFile(files []string, zipPath string) error {
 	if err != nil {
 		return err
 	}
-	defer zipFile.Close()
+	// Fallback para garantir que o arquivo seja fechado caso ocorra um return antecipado com erro
+	defer func() { _ = zipFile.Close() }()
 
 	zipWriter := zip.NewWriter(zipFile)
-	defer zipWriter.Close()
+	// Fallback para garantir que o writer seja limpo em caso de erro
+	defer func() { _ = zipWriter.Close() }()
 
 	for _, file := range files {
 		err := addFileToZip(zipWriter, file)
 		if err != nil {
 			return err
 		}
+	}
+
+	// 1. Fecha o zipWriter explicitamente para garantir a escrita do cabeçalho e rodapé do arquivo ZIP
+	if err := zipWriter.Close(); err != nil {
+		return err
+	}
+
+	// 2. Flusha e fecha o arquivo no sistema de arquivos tratando erros de disco
+	if err := zipFile.Close(); err != nil {
+		return err
 	}
 
 	return nil
@@ -33,7 +45,8 @@ func addFileToZip(zipWriter *zip.Writer, filename string) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	// Ignora o erro no defer de leitura pois o arquivo já foi lido por completo no final da função
+	defer func() { _ = file.Close() }()
 
 	info, err := file.Stat()
 	if err != nil {

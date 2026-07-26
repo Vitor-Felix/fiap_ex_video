@@ -33,7 +33,7 @@ func TestIsValidVideoFile(t *testing.T) {
 func TestCreateDirs(t *testing.T) {
 	// Muda o BasePath temporariamente para o teste não sujar a raiz do seu projeto
 	BasePath = "./test_dir/"
-	defer os.RemoveAll(BasePath) // Limpa tudo quando o teste terminar
+	defer func() { _ = os.RemoveAll(BasePath) }() // Limpa tudo quando o teste terminar
 
 	// Executa a função
 	CreateDirs()

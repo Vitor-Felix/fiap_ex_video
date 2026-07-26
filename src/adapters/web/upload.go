@@ -24,7 +24,8 @@ func (h *Handler) HandleVideoUpload(c *gin.Context) {
 		})
 		return
 	}
-	defer file.Close()
+	// Correção 1: Função anônima com atribuição ao identificador em branco
+	defer func() { _ = file.Close() }()
 
 	// Validação inicial
 	if !utils.IsValidVideoFile(header.Filename) { // 👈 Mudou de ffmpeg para utils
@@ -48,7 +49,8 @@ func (h *Handler) HandleVideoUpload(c *gin.Context) {
 		})
 		return
 	}
-	defer out.Close()
+	// Correção 2: Tratamento do out.Close()
+	defer func() { _ = out.Close() }()
 
 	_, err = io.Copy(out, file)
 	if err != nil {
@@ -65,7 +67,8 @@ func (h *Handler) HandleVideoUpload(c *gin.Context) {
 
 	// Se a regra de negócio foi executada com sucesso, limpamos o vídeo original
 	if result.Success {
-		os.Remove(videoPath)
+		// Correção 3: Ignorando erro de remoção explicitamente
+		_ = os.Remove(videoPath)
 		c.JSON(http.StatusOK, result)
 	} else {
 		// Se deu erro em qualquer etapa (banco ou processamento), devolvemos erro
