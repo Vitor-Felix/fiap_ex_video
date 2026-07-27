@@ -60,7 +60,7 @@ Foco de Avaliação FIAP: Processamento Assíncrono e Garantia de que nenhuma re
 🐍 Milestone 4: O Novo Worker de Processamento (Segundo Microsserviço)
 Objetivo: Criar o microsserviço especialista em background para consumir e processar as filas sob demanda.
 
-[ ] Issue 4.1: Criar o Worker Consumidor (Python/Go)
+[x] Issue 4.1: Criar o Worker Consumidor (Python/Go)
 
 O que fazer: Criar uma nova aplicação isolada (pode ser em Python devido à forte compatibilidade com manipulação de mídia). Esse script deve escutar a fila do RabbitMQ. Ao capturar uma mensagem, ele altera imediatamente o status do vídeo no Postgres para PROCESSANDO.
 

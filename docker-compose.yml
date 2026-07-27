@@ -72,6 +72,29 @@ services:
     depends_on:
       - api
 
+  # 5 - Worker Consumidor (Python)
+  fiap_worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    container_name: fiap_worker
+    environment:
+      - DB_HOST=database
+      - DB_PORT=5432
+      - DB_NAME=fiap_x_db
+      - DB_USER=fiap_user
+      - DB_PASSWORD=fiap_password
+      - RABBITMQ_URL=amqp://fiap:fiap@rabbitmq:5672/
+    volumes:
+      - shared_uploads:/app/uploads
+      - shared_outputs:/app/outputs
+      - shared_temp:/app/temp
+    depends_on:
+      database:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+        
 volumes:
   pgdata:
     driver: local

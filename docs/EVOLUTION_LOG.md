@@ -211,3 +211,97 @@ Observação importante para a próxima IA: nesta etapa ainda não existe Consum
 - Refatoração dos mocks em `video_service_test.go`: substituição do `fakeProcessor` pelo `fakeBroker`.
 - Teste unitário validando a publicação na fila em cenário de sucesso e o aborto da publicação em caso de erro de persistência.
 - Cobertura e linting aprovados (`go test ./...` e `golangci-lint run ./...`).
+
+🕒 [FASE 9] - Introdução do Worker Consumidor Poliglota em Python (Issue 4.1 Concluída)
+
+🐍 Novo Microsserviço Worker (Python)
+
+Criação do diretório /worker isolado na raiz do repositório contendo o novo microsserviço especialista consumidor de filas.
+
+worker/requirements.txt: Dependências leves com pika==1.3.2 (AMQP) e psycopg2-binary==2.9.9 (Driver PostgreSQL).
+
+worker/db.py: Módulo isolado de persistência para atualização de estado dos vídeos no banco relacional.
+
+worker/main.py: Script principal de escuta contínua no RabbitMQ.
+
+Implementação de retry resilience para estabilidade na inicialização do container.
+
+Consumo com confirmação manual (basic_ack em caso de sucesso e basic_nack em falhas).
+
+Configuração de Fair Dispatch (prefetch_count=1).
+
+Transição imediata do status do vídeo de PENDENTE para PROCESSANDO via Query SQL direta no Postgres.
+
+worker/Dockerfile: Imagem base python:3.11-slim otimizada com instalação de dependências C para suporte ao psycopg2.
+
+🐳 Atualização da Orquestração no docker-compose.yml
+
+Inclusão do serviço fiap_worker apontando para o contexto ./worker.
+
+Mapeamento correto de variáveis de ambiente apontando para o container database (Postgres fiap_x_db / fiap_user) e rabbitmq (AMQP porta 5672).
+
+Montagem dos Named Volumes compartilhados (shared_uploads, shared_outputs, shared_temp).
+
+💡 Instruções Importantes para a Próxima IA / Desenvolvedor
+Ambiente Atualizado e Operacional:
+
+Bash
+docker compose up --build -d
+Serviços Esperados e Ativos:
+
+fiap_gateway (Nginx na porta :8080)
+
+fiap_api (Backend Go / Producer)
+
+fiap_postgres (PostgreSQL 16 / Banco fiap_x_db)
+
+fiap_rabbitmq (RabbitMQ 4 / Fila video_processing_queue)
+
+fiap_worker (Worker Python / Consumer)
+
+📌 Estado Atual do Fluxo Assíncrono:
+O Usuário faz o upload na SPA.
+
+A API Go valida, armazena o vídeo em /app/uploads, cria o registro como PENDENTE no Postgres e envia o JSON {"video_id": "...", "video_path": "..."} para o RabbitMQ.
+
+A API Go responde imediatamente HTTP 202 Accepted.
+
+O Worker Python captura a mensagem, abre conexão com o Postgres e altera o status do vídeo para PROCESSANDO.
+
+O Worker envia o ACK para o RabbitMQ.
+
+A interface SPA atualiza a badge via Polling para PROCESSANDO.
+
+🚀 Próxima Etapa Oficial:
+Milestone 4 — Issue 4.2: Extração de Frames via FFmpeg, Geração do ZIP e Finalização/Erro
+
+Objetivo:
+
+Adicionar a binary do ffmpeg no Dockerfile do Worker Python (ou via pacote de sistema apt-get install -y ffmpeg).
+
+No script Python do Worker (main.py / novo módulo processor.py):
+
+Executar o ffmpeg extraindo 1 frame por segundo (-vf fps=1) do arquivo em /app/uploads.
+
+Salvar os frames temporariamente no volume /app/temp.
+
+Compactar os frames extraídos em um arquivo .zip na pasta /app/outputs.
+
+Em caso de SUCESSO: atualizar no Postgres para status = 'CONCLUIDO'.
+
+Em caso de ERRO: capturar a exceção e atualizar para status = 'ERRO' gravando a mensagem em error_message.
+
+Opcional/Diferencial FIAP: Adicionar um mock/módulo de notificação por e-mail em caso de falha.
+
+Atenção para a Próxima IA:
+
+Toda a lógica do FFmpeg que existia no Go em src/adapters/ffmpeg/ deve agora ser implementada em Python dentro da pasta /worker.
+
+Lembre-se de instalar o ffmpeg no worker/Dockerfile.
+
+Os caminhos de volume compartilhados já estão configurados no docker-compose.yml (/app/uploads, /app/outputs, /app/temp).
+
+
+---
+
+<FollowUp label="Quer iniciar agora a Issue 4.2 para instalar o FFmpeg e fazer a extração de frames e ZIP no Python?" query="Vamos começar a Issue 4.2! Como adicionamos o FFmpeg e a lógica de geração de ZIP no nosso Worker Python?"/>
