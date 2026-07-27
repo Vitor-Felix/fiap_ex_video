@@ -189,3 +189,125 @@ retornar imediatamente HTTP 202 Accepted.
 O processamento via FFmpeg deixará de ocorrer na API e será migrado para o Worker na Milestone 4.
 
 Observação importante para a próxima IA: nesta etapa ainda não existe Consumer. O foco será exclusivamente integrar a API Go ao RabbitMQ, declarar a fila (QueueDeclare) e publicar mensagens (Publish) utilizando um cliente AMQP. O Worker será implementado apenas na Issue 4.1.
+
+🕒 [FASE 8] - API Go como Producer & Desacoplamento Assíncrono (Issue 3.3 Concluída)
+
+📨 Integração do RabbitMQ na API Go (Producer)
+- Criação da interface outbound `MessageBroker` em `src/ports/outbound/message_broker.go` respeitando a Arquitetura Hexagonal.
+- Criação do adaptador `RabbitMQAdapter` em `src/adapters/messaging/rabbitmq.go` utilizando o driver oficial `github.com/rabbitmq/amqp091-go`.
+  - Configuração de fila durável (`video_processing_queue`) com mensagens persistentes.
+  - Envio de payload JSON com `video_id` e `video_path` via `PublishWithContext` com timeout de segurança.
+
+🔄 Alteração de Fluxo da Regra de Negócio (`video_service.go` & `upload.go`)
+- Remoção da chamada síncrona do FFmpeg no fluxo HTTP.
+- O handler `/upload` armazena o vídeo físico, grava o registro no banco como `PENDENTE`, enfileira a mensagem no RabbitMQ e responde imediatamente com **HTTP 202 Accepted**.
+- O arquivo de vídeo físico em `/app/uploads` é mantido intacto no disco compartilhado para consumo posterior pelo Worker.
+
+🐳 Ajuste de Volumes e Permissões no Docker Compose
+- Transição de Bind Mounts locais para **Named Volumes** compartilhados (`shared_uploads`, `shared_outputs`, `shared_temp`) no `docker-compose.yml`.
+- Resolução definitiva de conflitos de permissão (`permission denied`) mantendo compatibilidade nativa e execução limpa sem intervenção manual do usuário/avaliador.
+
+🧪 Atualização da Suíte de Testes Nativos
+- Refatoração dos mocks em `video_service_test.go`: substituição do `fakeProcessor` pelo `fakeBroker`.
+- Teste unitário validando a publicação na fila em cenário de sucesso e o aborto da publicação em caso de erro de persistência.
+- Cobertura e linting aprovados (`go test ./...` e `golangci-lint run ./...`).
+
+🕒 [FASE 9] - Introdução do Worker Consumidor Poliglota em Python (Issue 4.1 Concluída)
+
+🐍 Novo Microsserviço Worker (Python)
+
+Criação do diretório /worker isolado na raiz do repositório contendo o novo microsserviço especialista consumidor de filas.
+
+worker/requirements.txt: Dependências leves com pika==1.3.2 (AMQP) e psycopg2-binary==2.9.9 (Driver PostgreSQL).
+
+worker/db.py: Módulo isolado de persistência para atualização de estado dos vídeos no banco relacional.
+
+worker/main.py: Script principal de escuta contínua no RabbitMQ.
+
+Implementação de retry resilience para estabilidade na inicialização do container.
+
+Consumo com confirmação manual (basic_ack em caso de sucesso e basic_nack em falhas).
+
+Configuração de Fair Dispatch (prefetch_count=1).
+
+Transição imediata do status do vídeo de PENDENTE para PROCESSANDO via Query SQL direta no Postgres.
+
+worker/Dockerfile: Imagem base python:3.11-slim otimizada com instalação de dependências C para suporte ao psycopg2.
+
+🐳 Atualização da Orquestração no docker-compose.yml
+
+Inclusão do serviço fiap_worker apontando para o contexto ./worker.
+
+Mapeamento correto de variáveis de ambiente apontando para o container database (Postgres fiap_x_db / fiap_user) e rabbitmq (AMQP porta 5672).
+
+Montagem dos Named Volumes compartilhados (shared_uploads, shared_outputs, shared_temp).
+
+💡 Instruções Importantes para a Próxima IA / Desenvolvedor
+Ambiente Atualizado e Operacional:
+
+Bash
+docker compose up --build -d
+Serviços Esperados e Ativos:
+
+fiap_gateway (Nginx na porta :8080)
+
+fiap_api (Backend Go / Producer)
+
+fiap_postgres (PostgreSQL 16 / Banco fiap_x_db)
+
+fiap_rabbitmq (RabbitMQ 4 / Fila video_processing_queue)
+
+fiap_worker (Worker Python / Consumer)
+
+🕒 [FASE 10] - Processamento de Frames no Worker (Issue 4.2 Concluída)
+
+🎬 Implementação do processamento real no microsserviço Worker
+- O worker passou a executar o fluxo completo de processamento assíncrono após consumir a mensagem do RabbitMQ.
+- A lógica de extração de frames via FFmpeg foi migrada para o módulo Python `worker/processor.py`.
+- O worker agora cria um diretório temporário por vídeo em `/app/temp/<video_id>`, extrai 1 frame por segundo e salva os arquivos PNG.
+- Os frames extraídos são compactados em um arquivo `.zip` dentro do volume compartilhado `/app/outputs`.
+- O status do vídeo é atualizado para `CONCLUIDO` com `zip_path` e `frame_count` em caso de sucesso.
+- Em caso de falha, o vídeo é marcado como `ERRO` com a mensagem de exceção armazenada em `error_message`.
+
+🔧 Ajustes técnicos aplicados
+- `worker/db.py`: inclusão de funções para atualizar os estados `CONCLUIDO` e `ERRO` no PostgreSQL.
+- `worker/main.py`: integração do callback do RabbitMQ com o fluxo completo de processamento, ACK/NACK e tratamento de erro.
+- `worker/Dockerfile`: instalação do pacote `ffmpeg` para permitir a extração de frames no container do worker.
+- `worker/tests/test_processor.py`: criação de teste de regressão para validar a geração do ZIP a partir de frames extraídos.
+
+🧪 Verificação realizada
+- Comando executado:
+  `cd worker && python3 -m unittest discover -s tests -p 'test_*.py'`
+- Resultado: `Ran 1 test ... OK`
+
+📌 Estado atual do fluxo
+Após o upload, a API registra o vídeo como PENDENTE, publica a mensagem na fila e responde com HTTP 202. O worker consome a mensagem, processa o vídeo e finaliza o ciclo com o status correto no banco.
+
+📌 Contexto operacional para a próxima IA
+O fluxo atual já está funcional em nível de arquitetura: o usuário faz upload pela SPA, a API Go persiste o vídeo, publica uma mensagem com `video_id` e `video_path` no RabbitMQ e responde com HTTP 202. O Worker Python consome essa mensagem, altera o status do vídeo para `PROCESSANDO`, executa o processamento real, atualiza o banco para `CONCLUIDO` ou `ERRO` e gera o artefato `.zip` em `/app/outputs`.
+
+🎯 Foco da próxima etapa: Issue 5.1 — Mapear Manifestos Kubernetes (K8s)
+A próxima IA deve concentrar-se em transformar a arquitetura atual em um desenho que suporte escalabilidade horizontal e orquestração com Kubernetes. O objetivo não é alterar o fluxo de negócio, mas representar os componentes já existentes em manifests YAML para `Deployment`, `Service`, `ConfigMap` e, se necessário, `PersistentVolumeClaim`.
+
+🧭 Contexto técnico essencial
+- O projeto já possui os seguintes componentes de runtime:
+  - API Go (`src/`)
+  - Worker Python (`worker/`)
+  - PostgreSQL (`database` no Docker Compose)
+  - RabbitMQ (`rabbitmq` no Docker Compose)
+  - Nginx Gateway (`gateway` no Docker Compose)
+- A comunicação entre os serviços é baseada em variáveis de ambiente, volumes compartilhados e uma fila RabbitMQ.
+- O ambiente local atual usa Docker Compose, mas a próxima implementação deve pensar em equivalentes Kubernetes: `Deployment` para cada serviço, `Service` para expor portas internas, `ConfigMap`/`Secret` para configuração e persistência para o banco.
+
+🛠️ Entregável esperado
+Criar uma pasta `k8s/` com manifests básicos que descrevam:
+- API Go e Worker como `Deployment`;
+- PostgreSQL e RabbitMQ como `Deployment` + `Service`;
+- Nginx Gateway como `Deployment` + `Service`;
+- Configuração de ambiente via `ConfigMap` ou `Secret`;
+- Persistência mínima para banco e filas, quando aplicável.
+
+⚠️ Atenção para a IA seguinte
+Não reimplementar a lógica de negócio do processamento. O foco aqui é apenas a representação de infraestrutura em Kubernetes, preservando o contexto do fluxo assíncrono já consolidado e preparando a base para a Milestone 5.
+
+---

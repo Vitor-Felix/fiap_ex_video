@@ -1,6 +1,36 @@
 # IDE folders
 /.idea/
 /.ai/
+.vscode/
 
+# Runtime and generated artifacts
 *.zip
+*.tar
+*.log
 coverage.out
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+venv/
+
+# Go
+/bin/
+/obj/
+*.test
+
+# Docker / local environment
+.env
+.env.*
+/uploads/
+/outputs/
+/temp/
+/pgdata/
+/rabbitmq_data/
+
+# OS files
+.DS_Store
+Thumbs.db
