@@ -45,13 +45,13 @@ O que fazer: Adicionar um serviço de API Gateway leve (como Nginx ou KrakenD) n
 
 Foco de Avaliação FIAP: Padrões de Arquitetura de Microsserviços e Ponto Único de Entrada.
 
-[ ] Issue 3.2: Subir o RabbitMQ e Criar a Fila
+[x] Issue 3.2: Subir o RabbitMQ e Criar a Fila
 
 O que fazer: Adicionar o container oficial do RabbitMQ ao ambiente Docker e declarar a fila de mensagens de processamento.
 
 Foco de Avaliação FIAP: Mensageria e Resiliência do Sistema.
 
-[ ] Issue 3.3: Transformar a API Go em Produtor (Producer)
+[x] Issue 3.3: Transformar a API Go em Produtor (Producer)
 
 O que fazer: Alterar o handler de upload do Go. Ao receber o arquivo, a API salva o estado inicial no Postgres como PENDENTE, publica o ID do vídeo na fila do RabbitMQ e retorna imediatamente o status HTTP 202 para o usuário. A API não processa mais o vídeo.
 
@@ -60,13 +60,13 @@ Foco de Avaliação FIAP: Processamento Assíncrono e Garantia de que nenhuma re
 🐍 Milestone 4: O Novo Worker de Processamento (Segundo Microsserviço)
 Objetivo: Criar o microsserviço especialista em background para consumir e processar as filas sob demanda.
 
-[ ] Issue 4.1: Criar o Worker Consumidor (Python/Go)
+[x] Issue 4.1: Criar o Worker Consumidor (Python/Go)
 
 O que fazer: Criar uma nova aplicação isolada (pode ser em Python devido à forte compatibilidade com manipulação de mídia). Esse script deve escutar a fila do RabbitMQ. Ao capturar uma mensagem, ele altera imediatamente o status do vídeo no Postgres para PROCESSANDO.
 
 Foco de Avaliação FIAP: Desenvolvimento de Microsserviços e Desacoplamento.
 
-[ ] Issue 4.2: Extração de Frames, Geração do ZIP e Alertas
+[x] Issue 4.2: Extração de Frames, Geração do ZIP e Alertas
 
 O que fazer: Migrar a lógica do ffmpeg para o Worker. Ele realiza o processamento do vídeo, joga o .zip resultante em um diretório compartilhado (Volume Docker) e altera o status para CONCLUIDO. Adicionar uma integração simulada (ex: Mailtrap) para disparar um e-mail de alerta caso o bloco de captura caia em ERRO.
 
