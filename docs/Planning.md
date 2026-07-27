@@ -66,7 +66,7 @@ O que fazer: Criar uma nova aplicação isolada (pode ser em Python devido à fo
 
 Foco de Avaliação FIAP: Desenvolvimento de Microsserviços e Desacoplamento.
 
-[ ] Issue 4.2: Extração de Frames, Geração do ZIP e Alertas
+[x] Issue 4.2: Extração de Frames, Geração do ZIP e Alertas
 
 O que fazer: Migrar a lógica do ffmpeg para o Worker. Ele realiza o processamento do vídeo, joga o .zip resultante em um diretório compartilhado (Volume Docker) e altera o status para CONCLUIDO. Adicionar uma integração simulada (ex: Mailtrap) para disparar um e-mail de alerta caso o bloco de captura caia em ERRO.
 

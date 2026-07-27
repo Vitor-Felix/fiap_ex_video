@@ -259,49 +259,55 @@ fiap_rabbitmq (RabbitMQ 4 / Fila video_processing_queue)
 
 fiap_worker (Worker Python / Consumer)
 
-📌 Estado Atual do Fluxo Assíncrono:
-O Usuário faz o upload na SPA.
+🕒 [FASE 10] - Processamento de Frames no Worker (Issue 4.2 Concluída)
 
-A API Go valida, armazena o vídeo em /app/uploads, cria o registro como PENDENTE no Postgres e envia o JSON {"video_id": "...", "video_path": "..."} para o RabbitMQ.
+🎬 Implementação do processamento real no microsserviço Worker
+- O worker passou a executar o fluxo completo de processamento assíncrono após consumir a mensagem do RabbitMQ.
+- A lógica de extração de frames via FFmpeg foi migrada para o módulo Python `worker/processor.py`.
+- O worker agora cria um diretório temporário por vídeo em `/app/temp/<video_id>`, extrai 1 frame por segundo e salva os arquivos PNG.
+- Os frames extraídos são compactados em um arquivo `.zip` dentro do volume compartilhado `/app/outputs`.
+- O status do vídeo é atualizado para `CONCLUIDO` com `zip_path` e `frame_count` em caso de sucesso.
+- Em caso de falha, o vídeo é marcado como `ERRO` com a mensagem de exceção armazenada em `error_message`.
 
-A API Go responde imediatamente HTTP 202 Accepted.
+🔧 Ajustes técnicos aplicados
+- `worker/db.py`: inclusão de funções para atualizar os estados `CONCLUIDO` e `ERRO` no PostgreSQL.
+- `worker/main.py`: integração do callback do RabbitMQ com o fluxo completo de processamento, ACK/NACK e tratamento de erro.
+- `worker/Dockerfile`: instalação do pacote `ffmpeg` para permitir a extração de frames no container do worker.
+- `worker/tests/test_processor.py`: criação de teste de regressão para validar a geração do ZIP a partir de frames extraídos.
 
-O Worker Python captura a mensagem, abre conexão com o Postgres e altera o status do vídeo para PROCESSANDO.
+🧪 Verificação realizada
+- Comando executado:
+  `cd worker && python3 -m unittest discover -s tests -p 'test_*.py'`
+- Resultado: `Ran 1 test ... OK`
 
-O Worker envia o ACK para o RabbitMQ.
+📌 Estado atual do fluxo
+Após o upload, a API registra o vídeo como PENDENTE, publica a mensagem na fila e responde com HTTP 202. O worker consome a mensagem, processa o vídeo e finaliza o ciclo com o status correto no banco.
 
-A interface SPA atualiza a badge via Polling para PROCESSANDO.
+📌 Contexto operacional para a próxima IA
+O fluxo atual já está funcional em nível de arquitetura: o usuário faz upload pela SPA, a API Go persiste o vídeo, publica uma mensagem com `video_id` e `video_path` no RabbitMQ e responde com HTTP 202. O Worker Python consome essa mensagem, altera o status do vídeo para `PROCESSANDO`, executa o processamento real, atualiza o banco para `CONCLUIDO` ou `ERRO` e gera o artefato `.zip` em `/app/outputs`.
 
-🚀 Próxima Etapa Oficial:
-Milestone 4 — Issue 4.2: Extração de Frames via FFmpeg, Geração do ZIP e Finalização/Erro
+🎯 Foco da próxima etapa: Issue 5.1 — Mapear Manifestos Kubernetes (K8s)
+A próxima IA deve concentrar-se em transformar a arquitetura atual em um desenho que suporte escalabilidade horizontal e orquestração com Kubernetes. O objetivo não é alterar o fluxo de negócio, mas representar os componentes já existentes em manifests YAML para `Deployment`, `Service`, `ConfigMap` e, se necessário, `PersistentVolumeClaim`.
 
-Objetivo:
+🧭 Contexto técnico essencial
+- O projeto já possui os seguintes componentes de runtime:
+  - API Go (`src/`)
+  - Worker Python (`worker/`)
+  - PostgreSQL (`database` no Docker Compose)
+  - RabbitMQ (`rabbitmq` no Docker Compose)
+  - Nginx Gateway (`gateway` no Docker Compose)
+- A comunicação entre os serviços é baseada em variáveis de ambiente, volumes compartilhados e uma fila RabbitMQ.
+- O ambiente local atual usa Docker Compose, mas a próxima implementação deve pensar em equivalentes Kubernetes: `Deployment` para cada serviço, `Service` para expor portas internas, `ConfigMap`/`Secret` para configuração e persistência para o banco.
 
-Adicionar a binary do ffmpeg no Dockerfile do Worker Python (ou via pacote de sistema apt-get install -y ffmpeg).
+🛠️ Entregável esperado
+Criar uma pasta `k8s/` com manifests básicos que descrevam:
+- API Go e Worker como `Deployment`;
+- PostgreSQL e RabbitMQ como `Deployment` + `Service`;
+- Nginx Gateway como `Deployment` + `Service`;
+- Configuração de ambiente via `ConfigMap` ou `Secret`;
+- Persistência mínima para banco e filas, quando aplicável.
 
-No script Python do Worker (main.py / novo módulo processor.py):
-
-Executar o ffmpeg extraindo 1 frame por segundo (-vf fps=1) do arquivo em /app/uploads.
-
-Salvar os frames temporariamente no volume /app/temp.
-
-Compactar os frames extraídos em um arquivo .zip na pasta /app/outputs.
-
-Em caso de SUCESSO: atualizar no Postgres para status = 'CONCLUIDO'.
-
-Em caso de ERRO: capturar a exceção e atualizar para status = 'ERRO' gravando a mensagem em error_message.
-
-Opcional/Diferencial FIAP: Adicionar um mock/módulo de notificação por e-mail em caso de falha.
-
-Atenção para a Próxima IA:
-
-Toda a lógica do FFmpeg que existia no Go em src/adapters/ffmpeg/ deve agora ser implementada em Python dentro da pasta /worker.
-
-Lembre-se de instalar o ffmpeg no worker/Dockerfile.
-
-Os caminhos de volume compartilhados já estão configurados no docker-compose.yml (/app/uploads, /app/outputs, /app/temp).
-
+⚠️ Atenção para a IA seguinte
+Não reimplementar a lógica de negócio do processamento. O foco aqui é apenas a representação de infraestrutura em Kubernetes, preservando o contexto do fluxo assíncrono já consolidado e preparando a base para a Milestone 5.
 
 ---
-
-<FollowUp label="Quer iniciar agora a Issue 4.2 para instalar o FFmpeg e fazer a extração de frames e ZIP no Python?" query="Vamos começar a Issue 4.2! Como adicionamos o FFmpeg e a lógica de geração de ZIP no nosso Worker Python?"/>
