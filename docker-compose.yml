@@ -37,7 +37,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # 3. Backend Go (API)
+# 3. Backend Go (API)
   api:
     build:
       context: .
@@ -49,15 +49,17 @@ services:
       - DB_USER=fiap_user
       - DB_PASSWORD=fiap_password
       - DB_NAME=fiap_x_db
+      - RABBITMQ_URL=amqp://fiap:fiap@rabbitmq:5672/
     depends_on:
       database:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    
     volumes:
-      - ./uploads:/app/uploads
-      - ./outputs:/app/outputs
-      - ./temp:/app/temp
+      - shared_uploads:/app/uploads
+      - shared_outputs:/app/outputs
+      - shared_temp:/app/temp
 
   # 4. API Gateway (Nginx)
   gateway:
@@ -73,6 +75,12 @@ services:
 volumes:
   pgdata:
     driver: local
-
   rabbitmq_data:
     driver: local
+  shared_uploads:
+    driver: local
+  shared_outputs:
+    driver: local
+  shared_temp:
+    driver: local
+    

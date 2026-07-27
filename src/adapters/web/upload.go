@@ -65,13 +65,14 @@ func (h *Handler) HandleVideoUpload(c *gin.Context) {
 
 	result := h.videoService.ProcessUpload(userID, header.Filename, videoPath, timestamp)
 
-	// Se a regra de negócio foi executada com sucesso, limpamos o vídeo original
 	if result.Success {
-		// Correção 3: Ignorando erro de remoção explicitamente
-		_ = os.Remove(videoPath)
-		c.JSON(http.StatusOK, result)
+		// O arquivo precisa continuar na pasta /uploads para o futuro Worker processá-lo!
+
+		// 202 Accepted: A requisição foi aceita para processamento, mas ele ainda não terminou
+		c.JSON(http.StatusAccepted, result)
 	} else {
-		// Se deu erro em qualquer etapa (banco ou processamento), devolvemos erro
+		// Se falhou ao salvar no banco ou no RabbitMQ, removemos o arquivo órfão
+		_ = os.Remove(videoPath)
 		c.JSON(http.StatusInternalServerError, result)
 	}
 }

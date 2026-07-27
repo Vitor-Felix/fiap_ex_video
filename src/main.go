@@ -3,10 +3,11 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/gin-gonic/gin"
 
-	"video-processor/adapters/ffmpeg"
+	"video-processor/adapters/messaging" // 👈 Nosso novo adapter
 	"video-processor/adapters/persistence/postgres"
 	"video-processor/adapters/web"
 	"video-processor/application"
@@ -16,25 +17,30 @@ import (
 func main() {
 	utils.CreateDirs()
 
-	// 1. Inicia o Adaptador de Banco de Dados
+	// 1. Inicia o Banco de Dados
 	repo, err := postgres.NewRepository()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Erro no BD:", err)
 	}
 
-	// 2. Inicia o Adaptador de Processamento de Vídeo (FFmpeg)
-	videoProcessor := ffmpeg.NewProcessor()
+	// 2. Inicia o RabbitMQ
+	// Pega a URL do docker-compose ou usa localhost localmente
+	rabbitURL := os.Getenv("RABBITMQ_URL")
+	if rabbitURL == "" {
+		rabbitURL = "amqp://fiap:fiap@localhost:5672/"
+	}
 
-	// 3. Inicia a Regra de Negócio (Application Service), injetando as Portas (Adapters)
-	videoService := application.NewVideoService(repo, videoProcessor)
+	broker, err := messaging.NewRabbitMQAdapter(rabbitURL)
+	if err != nil {
+		log.Fatal("Erro ao conectar no RabbitMQ: ", err)
+	}
+
+	// 3. Inicia a Regra de Negócio injetando o RabbitMQ (ao invés do FFmpeg)
+	videoService := application.NewVideoService(repo, broker)
 	authService := application.NewAuthService(repo)
 
-	// 4. Inicia o Adaptador Web, injetando os serviços
-	handler := web.NewHandler(
-		repo,
-		videoService,
-		authService,
-	)
+	// 4. Inicia o Adaptador Web
+	handler := web.NewHandler(repo, videoService, authService)
 
 	r := gin.Default()
 

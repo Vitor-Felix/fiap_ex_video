@@ -45,13 +45,13 @@ O que fazer: Adicionar um serviço de API Gateway leve (como Nginx ou KrakenD) n
 
 Foco de Avaliação FIAP: Padrões de Arquitetura de Microsserviços e Ponto Único de Entrada.
 
-[ ] Issue 3.2: Subir o RabbitMQ e Criar a Fila
+[x] Issue 3.2: Subir o RabbitMQ e Criar a Fila
 
 O que fazer: Adicionar o container oficial do RabbitMQ ao ambiente Docker e declarar a fila de mensagens de processamento.
 
 Foco de Avaliação FIAP: Mensageria e Resiliência do Sistema.
 
-[ ] Issue 3.3: Transformar a API Go em Produtor (Producer)
+[x] Issue 3.3: Transformar a API Go em Produtor (Producer)
 
 O que fazer: Alterar o handler de upload do Go. Ao receber o arquivo, a API salva o estado inicial no Postgres como PENDENTE, publica o ID do vídeo na fila do RabbitMQ e retorna imediatamente o status HTTP 202 para o usuário. A API não processa mais o vídeo.
 

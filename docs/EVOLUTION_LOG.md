@@ -189,3 +189,25 @@ retornar imediatamente HTTP 202 Accepted.
 O processamento via FFmpeg deixará de ocorrer na API e será migrado para o Worker na Milestone 4.
 
 Observação importante para a próxima IA: nesta etapa ainda não existe Consumer. O foco será exclusivamente integrar a API Go ao RabbitMQ, declarar a fila (QueueDeclare) e publicar mensagens (Publish) utilizando um cliente AMQP. O Worker será implementado apenas na Issue 4.1.
+
+🕒 [FASE 8] - API Go como Producer & Desacoplamento Assíncrono (Issue 3.3 Concluída)
+
+📨 Integração do RabbitMQ na API Go (Producer)
+- Criação da interface outbound `MessageBroker` em `src/ports/outbound/message_broker.go` respeitando a Arquitetura Hexagonal.
+- Criação do adaptador `RabbitMQAdapter` em `src/adapters/messaging/rabbitmq.go` utilizando o driver oficial `github.com/rabbitmq/amqp091-go`.
+  - Configuração de fila durável (`video_processing_queue`) com mensagens persistentes.
+  - Envio de payload JSON com `video_id` e `video_path` via `PublishWithContext` com timeout de segurança.
+
+🔄 Alteração de Fluxo da Regra de Negócio (`video_service.go` & `upload.go`)
+- Remoção da chamada síncrona do FFmpeg no fluxo HTTP.
+- O handler `/upload` armazena o vídeo físico, grava o registro no banco como `PENDENTE`, enfileira a mensagem no RabbitMQ e responde imediatamente com **HTTP 202 Accepted**.
+- O arquivo de vídeo físico em `/app/uploads` é mantido intacto no disco compartilhado para consumo posterior pelo Worker.
+
+🐳 Ajuste de Volumes e Permissões no Docker Compose
+- Transição de Bind Mounts locais para **Named Volumes** compartilhados (`shared_uploads`, `shared_outputs`, `shared_temp`) no `docker-compose.yml`.
+- Resolução definitiva de conflitos de permissão (`permission denied`) mantendo compatibilidade nativa e execução limpa sem intervenção manual do usuário/avaliador.
+
+🧪 Atualização da Suíte de Testes Nativos
+- Refatoração dos mocks em `video_service_test.go`: substituição do `fakeProcessor` pelo `fakeBroker`.
+- Teste unitário validando a publicação na fila em cenário de sucesso e o aborto da publicação em caso de erro de persistência.
+- Cobertura e linting aprovados (`go test ./...` e `golangci-lint run ./...`).
