@@ -311,3 +311,29 @@ Criar uma pasta `k8s/` com manifests básicos que descrevam:
 Não reimplementar a lógica de negócio do processamento. O foco aqui é apenas a representação de infraestrutura em Kubernetes, preservando o contexto do fluxo assíncrono já consolidado e preparando a base para a Milestone 5.
 
 ---
+
+🕒 [FASE 11] - Orquestração Local com Kubernetes & Minikube (Issue 5.1 Concluída)
+
+☸️ Criação de Manifestos Kubernetes (Pasta `k8s/`)
+
+* Estruturação completa dos arquivos declarativos YAML para execução de toda a arquitetura no Minikube:
+* `01-config-secret.yaml`: Centralização de variáveis de ambiente (`ConfigMap`) e credenciais sensíveis (`Secret`).
+* `02-postgres.yaml`: `Deployment` do PostgreSQL 16 integrado ao script oficial de inicialização (`db/init.sql` via ConfigMap) e `Service` ClusterIP.
+* `03-rabbitmq.yaml`: `Deployment` e `Service` do RabbitMQ.
+* `04-api.yaml` & `05-worker.yaml`: `Deployments` da API Go e do Worker Python, configurados para utilizar imagens locais buildadas e injetadas no Minikube (`minikube image load`).
+* `06-gateway.yaml`: `Deployment` e `Service` (NodePort) do Nginx Gateway utilizando volume montado via ConfigMap para o arquivo de rotas `nginx.conf`.
+* `07-pvc.yaml`: Declaração do `PersistentVolumeClaim` compartilhado (`shared-storage-pvc`) para armazenamento de uploads e outputs.
+
+
+
+🔧 Resolução de Desafios de Infraestrutura & Rede Local
+
+* Correção de conflitos de portas no NodePort do Gateway (`30080` já alocado), optando por portas dinâmicas e acesso via comando nativo `kubectl port-forward svc/gateway-service 8080:8080`.
+* Ajuste do arquivo `nginx/nginx.conf` para escutar na porta `8080` e apontar o `proxy_pass` corretamente para o serviço interno `http://api-service:8080`, eliminando erros de resolução de upstream (*CrashLoopBackOff*).
+* Sincronização e recriação estruturada do banco de dados no cluster, garantindo a correta aplicação das extensões (`pgcrypto`, `uuid-ossp`) e schema atualizado (`users`, `videos`).
+
+📖 Documentação e Guia de Execução
+
+* Elaboração do passo a passo oficial para subida do ambiente em cluster local via Minikube (build de imagens, injeção de configmaps, aplicação de manifests e comandos de port-forward para teste via navegador e DBeaver).
+
+---
