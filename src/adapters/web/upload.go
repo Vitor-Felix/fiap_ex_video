@@ -18,17 +18,21 @@ import (
 func (h *Handler) HandleVideoUpload(c *gin.Context) {
 	file, header, err := c.Request.FormFile("video")
 	if err != nil {
+		utils.ProcessingErrorsTotal.Inc()
+
 		c.JSON(http.StatusBadRequest, dto.ProcessingResult{
 			Success: false,
 			Message: "Erro ao receber arquivo: " + err.Error(),
 		})
 		return
 	}
-	// Correção 1: Função anônima com atribuição ao identificador em branco
+
 	defer func() { _ = file.Close() }()
 
 	// Validação inicial
-	if !utils.IsValidVideoFile(header.Filename) { // 👈 Mudou de ffmpeg para utils
+	if !utils.IsValidVideoFile(header.Filename) {
+		utils.ProcessingErrorsTotal.Inc()
+
 		c.JSON(http.StatusBadRequest, dto.ProcessingResult{
 			Success: false,
 			Message: "Formato de arquivo não suportado. Use: mp4, avi, mov, mkv",
@@ -36,24 +40,28 @@ func (h *Handler) HandleVideoUpload(c *gin.Context) {
 		return
 	}
 
-	// Salva o arquivo no disco (o Web Adapter cuida da recepção do arquivo físico)
+	// Salva o arquivo no disco
 	timestamp := time.Now().Format("20060102_150405")
 	filename := fmt.Sprintf("%s_%s", timestamp, header.Filename)
 	videoPath := filepath.Join(utils.BasePath, "uploads", filename)
 
 	out, err := os.Create(videoPath)
 	if err != nil {
+		utils.ProcessingErrorsTotal.Inc()
+
 		c.JSON(http.StatusInternalServerError, dto.ProcessingResult{
 			Success: false,
 			Message: "Erro ao salvar arquivo: " + err.Error(),
 		})
 		return
 	}
-	// Correção 2: Tratamento do out.Close()
+
 	defer func() { _ = out.Close() }()
 
 	_, err = io.Copy(out, file)
 	if err != nil {
+		utils.ProcessingErrorsTotal.Inc()
+
 		c.JSON(http.StatusInternalServerError, dto.ProcessingResult{
 			Success: false,
 			Message: "Erro ao salvar arquivo: " + err.Error(),
@@ -66,11 +74,13 @@ func (h *Handler) HandleVideoUpload(c *gin.Context) {
 	result := h.videoService.ProcessUpload(userID, header.Filename, videoPath, timestamp)
 
 	if result.Success {
-		// O arquivo precisa continuar na pasta /uploads para o futuro Worker processá-lo!
+		utils.UploadsTotal.Inc()
 
-		// 202 Accepted: A requisição foi aceita para processamento, mas ele ainda não terminou
+		// O arquivo precisa continuar na pasta /uploads para o futuro Worker processá-lo!
 		c.JSON(http.StatusAccepted, result)
 	} else {
+		utils.ProcessingErrorsTotal.Inc()
+
 		// Se falhou ao salvar no banco ou no RabbitMQ, removemos o arquivo órfão
 		_ = os.Remove(videoPath)
 		c.JSON(http.StatusInternalServerError, result)

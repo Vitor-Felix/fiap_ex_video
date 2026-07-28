@@ -24,8 +24,8 @@ services:
     container_name: fiap_rabbitmq
     hostname: rabbitmq
     ports:
-      - "5672:5672"    # Comunicação AMQP
-      - "15672:15672"  # Interface Web
+      - "5672:5672"
+      - "15672:15672"
     environment:
       RABBITMQ_DEFAULT_USER: fiap
       RABBITMQ_DEFAULT_PASS: fiap
@@ -37,7 +37,7 @@ services:
       timeout: 5s
       retries: 5
 
-# 3. Backend Go (API)
+  # 3. Backend Go (API)
   api:
     build:
       context: .
@@ -55,7 +55,6 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-    
     volumes:
       - shared_uploads:/app/uploads
       - shared_outputs:/app/outputs
@@ -68,16 +67,44 @@ services:
     ports:
       - "8080:80"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/nginx.docker.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - api
 
-  # 5 - Worker Consumidor (Python)
+  # 5. Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: fiap_prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    depends_on:
+      - api
+
+  # 6. Grafana
+  grafana:
+    image: grafana/grafana:latest
+    container_name: fiap_grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+  # 7. Worker Consumidor (Python)
   fiap_worker:
     build:
       context: ./worker
       dockerfile: Dockerfile
     container_name: fiap_worker
+    ports:
+      - "8000:8000"
     environment:
       - DB_HOST=database
       - DB_PORT=5432
@@ -94,16 +121,25 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-        
+
 volumes:
   pgdata:
     driver: local
+
   rabbitmq_data:
     driver: local
+
   shared_uploads:
     driver: local
+
   shared_outputs:
     driver: local
+
   shared_temp:
     driver: local
-    
+
+  prometheus_data:
+    driver: local
+
+  grafana_data:
+    driver: local

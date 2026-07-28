@@ -337,3 +337,181 @@ Não reimplementar a lógica de negócio do processamento. O foco aqui é apenas
 * Elaboração do passo a passo oficial para subida do ambiente em cluster local via Minikube (build de imagens, injeção de configmaps, aplicação de manifests e comandos de port-forward para teste via navegador e DBeaver).
 
 ---
+
+🕒 [FASE 12] - Observabilidade, Monitoramento e Consolidação do Ambiente Kubernetes (Issue 5.2 Concluída)
+
+📊 Observabilidade da Aplicação
+
+A arquitetura passou a disponibilizar monitoramento completo tanto em Docker Compose quanto em Kubernetes.
+
+Foram mantidas duas configurações distintas do Prometheus:
+
+- monitoring/prometheus.yml
+  Utilizada exclusivamente pelo Docker Compose.
+  Targets:
+    - api:8080
+    - fiap_worker:8000
+
+- monitoring/prometheus.k8s.yml
+  Utilizada exclusivamente pelo Kubernetes.
+  Targets:
+    - api-service:8080
+    - worker-service:8000
+
+Essa separação evita incompatibilidades entre os nomes de host utilizados pelo Docker Compose e pelos Services do Kubernetes.
+
+☸️ Infraestrutura Kubernetes
+
+Novos manifestos adicionados:
+
+- 07-worker-service.yaml
+  Service ClusterIP exclusivo para o Worker Python, permitindo que Prometheus realize scraping das métricas.
+
+- 08-prometheus.yaml
+  Deployment do Prometheus utilizando ConfigMap externo para o arquivo prometheus.yml.
+
+- 09-grafana.yaml
+  Deployment e Service do Grafana para visualização das métricas do cluster.
+
+A arquitetura Kubernetes passou a possuir os seguintes componentes:
+
+- PostgreSQL
+- RabbitMQ
+- API Go
+- Worker Python
+- Gateway Nginx
+- Prometheus
+- Grafana
+
+Todos executando como Deployments independentes.
+
+📈 Métricas
+
+API Go
+
+O endpoint:
+
+/metrics
+
+foi integrado corretamente ao Gin Router.
+
+O Prometheus passou a coletar, entre outras, as métricas:
+
+- video_uploads_total
+- video_processed_total
+- video_processing_errors_total
+
+Worker Python
+
+O Worker passou a expor seu próprio endpoint:
+
+:8000/metrics
+
+permitindo monitoramento independente do processo consumidor da fila RabbitMQ.
+
+Os dois Targets passaram a permanecer em estado:
+
+UP
+
+na tela "Status -> Targets" do Prometheus.
+
+🎨 Dashboard Grafana
+
+Foi criado um dashboard contendo os principais indicadores da aplicação:
+
+- Uploads Totais
+- Processamentos Concluídos
+- Erros
+- Uploads por Minuto
+
+Durante a implementação foi avaliada a utilização de Provisioning automático via ConfigMaps do Grafana.
+
+Embora tecnicamente viável, a solução aumentou significativamente a complexidade da infraestrutura para um ganho pequeno no contexto acadêmico.
+
+Decisão arquitetural adotada:
+
+- manter o dashboard versionado como arquivo JSON;
+- disponibilizar instruções de importação no README;
+- evitar múltiplos ConfigMaps adicionais apenas para provisionamento automático.
+
+O arquivo oficial do dashboard encontra-se em:
+
+grafana/dashboard.json
+
+📚 Documentação
+
+O guia Kubernetes foi completamente revisado.
+
+Foram adicionadas instruções detalhadas para:
+
+- build das imagens;
+- carregamento das imagens no Minikube;
+- criação dos ConfigMaps necessários;
+- execução dos Deployments;
+- acesso via port-forward;
+- validação dos Services;
+- validação dos Endpoints;
+- validação do Prometheus;
+- utilização do Grafana;
+- Troubleshooting para os principais problemas encontrados durante o desenvolvimento.
+
+A documentação foi escrita pensando no avaliador conseguir reproduzir todo o ambiente sem necessidade de conhecimento prévio da implementação.
+
+🔧 Lições Técnicas Consolidadas
+
+Durante esta etapa foram identificados alguns comportamentos importantes do Minikube:
+
+- utilizar a tag `latest` durante o desenvolvimento frequentemente faz o Kubernetes reutilizar imagens antigas;
+- a estratégia mais confiável consiste em versionar as imagens (`v1`, `v2`, `v3`, ...), executar `minikube image load` e atualizar explicitamente o Deployment;
+- alterações em ConfigMaps não são refletidas automaticamente em Pods já existentes, sendo necessário reiniciar o Deployment correspondente (`kubectl rollout restart`);
+- o primeiro ponto de diagnóstico para falhas de monitoramento deve ser a tela "Status -> Targets" do Prometheus;
+- a validação de `kubectl get endpoints` mostrou-se extremamente útil para diferenciar problemas de Service, Deployment e aplicação.
+
+📌 Estado Atual da Arquitetura
+
+Fluxo completo validado:
+
+Usuário
+↓
+Gateway (Nginx)
+↓
+API Go
+↓
+PostgreSQL + RabbitMQ
+↓
+Worker Python
+↓
+FFmpeg
+↓
+ZIP
+↓
+Download autenticado
+
+Observabilidade:
+
+Prometheus
+↓
+API (/metrics)
+
+Prometheus
+↓
+Worker (/metrics)
+
+Grafana
+↓
+Prometheus
+
+Todos os componentes podem ser executados tanto em Docker Compose quanto em Kubernetes (Minikube), mantendo o mesmo fluxo funcional da aplicação.
+
+🎯 Próximos Trabalhos (não bloqueantes)
+
+O projeto encontra-se funcional e atende ao entregável da disciplina.
+
+Possíveis evoluções futuras incluem:
+
+- Auto Provisioning completo do Grafana (datasource + dashboards);
+- Horizontal Pod Autoscaler para API e Worker;
+- Migração para StatefulSet do PostgreSQL e RabbitMQ;
+- Utilização de Ingress Controller em substituição ao port-forward;
+- Persistência definitiva dos dashboards do Grafana via PVC;
+- Pipeline CI/CD para build e publicação automática das imagens Docker.
