@@ -86,104 +86,35 @@ Os artefatos complementares e os logs de evolução do projeto podem ser consult
 ---
 
 ## ☸️ Guia de Execução Local (Kubernetes via Minikube)
-Este documento descreve o passo a passo exato para subir a aplicação FIAP X utilizando Kubernetes com Minikube.
+Para a execução completa no Minikube, incluindo detalhes de pré-requisitos, build das imagens, criação de ConfigMaps, deployment dos manifestos, acesso à aplicação, PostgreSQL, Prometheus e seed de usuários, consulte o guia detalhado em [k8s/README.md](k8s/README.md).
 
-### 📋 Pré-requisitos
-Certifique-se de ter as seguintes ferramentas instaladas na sua máquina:
-
-- Docker (rodando localmente)
-- kubectl (CLI do Kubernetes)
-- Minikube
-
-### 🚀 Passo a Passo para Execução
-
-#### 1. Iniciar o Cluster Minikube
-Abra o terminal e inicialize o cluster:
+Resumo rápido:
 
 ```bash
 minikube start
-```
 
-Aguarde até que o cluster esteja ativo e pronto.
+docker build -t fiap-api:v2 -f Dockerfile .
+docker build -t fiap-worker:v2 -f worker/Dockerfile ./worker
 
-#### 2. Construir e Injetar as Imagens no Minikube
-Como o Minikube trabalha com um ambiente isolado de containers, é necessário buildar as imagens localmente e carregá-las para dentro do cluster:
+minikube image load fiap-api:v2
+minikube image load fiap-worker:v2
 
-```bash
-# Build da API Go
-docker build -t fiap-api:latest -f Dockerfile .
-
-# Build do Worker Python
-docker build -t fiap-worker:latest -f worker/Dockerfile ./worker
-
-# Injetar as imagens no Minikube
-minikube image load fiap-api:latest
-minikube image load fiap-worker:latest
-```
-
-#### 3. Criar os ConfigMaps de Configuração e Scripts
-O Kubernetes precisa ler o arquivo de configuração do Nginx e o script de inicialização do PostgreSQL:
-
-```bash
-# Configuração do Nginx Gateway
 kubectl create configmap nginx-config --from-file=nginx/nginx.conf
-
-# Script SQL de inicialização do PostgreSQL
 kubectl create configmap postgres-init-script --from-file=db/init.sql
-```
 
-#### 4. Aplicar os Manifestos do Kubernetes
-Aplique todos os arquivos declarativos contidos na pasta k8s:
-
-```bash
 kubectl apply -f k8s/
 ```
 
-Verifique se todos os pods estão ativos:
-
-```bash
-kubectl get pods
-```
-
-Aguarde alguns segundos até que todos os serviços completem a inicialização.
-
-### 🌐 Acessando a Aplicação e o Banco de Dados
-
-#### A. Acessar a Interface Web (API Gateway / Nginx)
-Em um terminal dedicado, execute:
+Após isso, use:
 
 ```bash
 kubectl port-forward svc/gateway-service 8080:8080
 ```
 
-Depois, abra o navegador em:
+E acesse:
 
 ```text
 http://localhost:8080
 ```
 
-#### B. Conectar no Banco de Dados
-Em um segundo terminal, execute:
-
-```bash
-kubectl port-forward svc/postgres-service 5432:5432
-```
-
-Isso permite que ferramentas como DBeaver ou psql se conectem ao banco localmente.
-
-#### C. Criar usuários iniciais para login
-Como ainda não existe uma tela de cadastro de usuários, o avaliador pode criar os acessos iniciais manualmente executando o seguinte script SQL no PostgreSQL:
-
-```sql
-INSERT INTO users (id, username, password_hash, created_at)
-VALUES 
-    (gen_random_uuid(), 'admin', crypt('123456', gen_salt('bf')), NOW()),
-    (gen_random_uuid(), 'dev', crypt('123456', gen_salt('bf')), NOW());
-```
-
-Credenciais de exemplo:
-- usuário: `admin`
-- senha: `123456`
-
-- usuário: `dev`
-- senha: `123456`
+Se precisar criar usuários iniciais para login, siga o exemplo descrito no guia detalhado em [k8s/README.md](k8s/README.md).

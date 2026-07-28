@@ -14,8 +14,10 @@ spec:
     spec:
       containers:
       - name: worker
-        image: fiap-worker:latest
+        image: fiap-worker:v2
         imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
         envFrom:
         - configMapRef:
             name: fiap-config

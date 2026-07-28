@@ -1,0 +1,213 @@
+Perfeito. Esquece "observabilidade de verdade". Agora o objetivo é passar na banca. Você precisa de algo que em 15~30 minutos fique bonito no vídeo e demonstre que existe monitoramento.
+
+O objetivo mínimo
+
+No vídeo você quer conseguir dizer:
+
+"Além da arquitetura distribuída, também implementamos observabilidade utilizando Prometheus e Grafana. O Prometheus coleta métricas da API e o Grafana apresenta dashboards em tempo real."
+
+Não importa se são apenas 2 ou 3 métricas.
+
+Plano Turbo
+Etapa 1 — Subir Prometheus e Grafana
+
+Adicionar no docker-compose:
+
+prometheus
+grafana
+
+Nada além disso.
+
+Etapa 2 — Expor /metrics na API Go
+
+Usar a biblioteca oficial.
+
+github.com/prometheus/client_golang/prometheus
+github.com/prometheus/client_golang/prometheus/promhttp
+
+Criar somente:
+
+GET /metrics
+
+com
+
+promhttp.Handler()
+
+Isso leva literalmente 2 minutos.
+
+Etapa 3 — Criar DUAS métricas
+
+Nem pense em fazer dezenas.
+
+Só:
+
+uploads_total
+
+Counter
+
+e
+
+processing_errors_total
+
+Counter
+
+Quando recebe upload:
+
+uploadsTotal.Inc()
+
+Quando ocorre erro:
+
+processingErrors.Inc()
+
+Acabou.
+
+Etapa 4 — Prometheus
+
+Arquivo simples:
+
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: "api"
+
+    static_configs:
+      - targets:
+          - api:8080
+
+Fim.
+
+Etapa 5 — Grafana
+
+Entrar
+
+localhost:3000
+
+login
+
+admin
+admin
+
+Adicionar datasource
+
+Prometheus
+
+URL
+
+http://prometheus:9090
+
+Salvar.
+
+Etapa 6 — Dashboard
+
+Criar somente 3 painéis.
+
+Painel 1
+
+Total Uploads
+
+Query
+
+uploads_total
+
+Visualization
+
+Stat
+
+Vai mostrar
+
+18
+
+gigante.
+
+Painel 2
+
+Processing Errors
+
+processing_errors_total
+
+Outro Stat.
+
+Painel 3
+
+Uploads por segundo
+
+rate(uploads_total[1m])
+
+Visualization
+
+Time Series
+
+Mesmo que fique quase reto.
+
+Fica bonito.
+
+Resultado
+
+Dashboard com
+
++----------------------+
+| Uploads        15    |
++----------------------+
+
++----------------------+
+| Errors          0    |
++----------------------+
+
++------------------------------+
+| Upload rate                  |
+|      _________               |
+|_____/         \______        |
++------------------------------+
+
+Já parece um sistema profissional.
+
+Se sobrar 5 minutos
+
+Adicionar mais um Counter.
+
+processed_total
+
+Incrementa quando o Worker termina.
+
+Então teremos:
+
+Uploads
+Processados
+Erros
+
+Já conta uma história completa.
+
+O que eu NÃO faria
+
+❌ Latência
+
+❌ Histogram
+
+❌ Gauge complexo
+
+❌ Métricas do RabbitMQ
+
+❌ Métricas do PostgreSQL
+
+❌ Node Exporter
+
+❌ Alertmanager
+
+❌ Loki
+
+❌ Tempo de processamento
+
+Tudo isso é legal, mas não aumenta muito a nota comparado ao tempo que consome.
+
+Minha ordem de execução (30 minutos)
+✅ Adicionar Prometheus e Grafana ao docker-compose.
+✅ Expor /metrics na API com promhttp.
+✅ Criar uploads_total.
+✅ Criar processing_errors_total.
+✅ Configurar o prometheus.yml.
+✅ Adicionar o datasource no Grafana.
+✅ Criar 3 painéis (Uploads, Errors, Upload Rate).
+✅ Fazer alguns uploads para os números aumentarem durante a gravação.
+
+Esse é o menor entregável que ainda demonstra observabilidade com Prometheus + Grafana de forma convincente para a apresentação.

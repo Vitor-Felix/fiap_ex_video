@@ -7,7 +7,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"video-processor/adapters/messaging" // 👈 Nosso novo adapter
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	"video-processor/adapters/messaging"
 	"video-processor/adapters/persistence/postgres"
 	"video-processor/adapters/web"
 	"video-processor/application"
@@ -16,6 +18,9 @@ import (
 
 func main() {
 	utils.CreateDirs()
+
+	// Registra as métricas personalizadas da aplicação
+	utils.RegisterMetrics()
 
 	// 1. Inicia o Banco de Dados
 	repo, err := postgres.NewRepository()
@@ -35,7 +40,7 @@ func main() {
 		log.Fatal("Erro ao conectar no RabbitMQ: ", err)
 	}
 
-	// 3. Inicia a Regra de Negócio injetando o RabbitMQ (ao invés do FFmpeg)
+	// 3. Inicia a Regra de Negócio injetando o RabbitMQ
 	videoService := application.NewVideoService(repo, broker)
 	authService := application.NewAuthService(repo)
 
@@ -57,6 +62,11 @@ func main() {
 
 		c.Next()
 	})
+
+	// =====================================================
+	// Endpoint de métricas para o Prometheus
+	// =====================================================
+	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	// Servir arquivos do sistema (Uploads/Outputs)
 	r.Static("/uploads", utils.BasePath+"uploads")
@@ -92,6 +102,7 @@ func main() {
 
 	fmt.Println("🎬 Servidor iniciado na porta 8080")
 	fmt.Println("📂 Acesse: http://localhost:8080")
+	fmt.Println("📊 Métricas Prometheus: http://localhost:8080/metrics")
 
 	log.Fatal(r.Run(":8080"))
 }

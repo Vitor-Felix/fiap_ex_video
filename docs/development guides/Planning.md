@@ -81,8 +81,137 @@ O que fazer: Criar uma pasta k8s/ na raiz do projeto contendo os arquivos YAML b
 
 Foco de Avaliação FIAP: Arquitetura e Infraestrutura autoescalável recomendada.
 
-[ ] Issue 5.2: Monitoramento com Prometheus e Grafana
+[x] Issue 5.2: Monitoramento com Prometheus e Grafana
 
 O que fazer: Subir os containers do Prometheus e do Grafana no compose local. Expor métricas nativas ou simples da aplicação (como contagem de uploads efetuados e erros de processamento) e plotar em um painel básico do Grafana para visualização na apresentação de vídeo.
 
 Foco de Avaliação FIAP: Requisito Técnico de Monitoramento e Observabilidade.
+---
+Issue 5.2 — Notificação de Falhas por E-mail (Mailtrap)
+Objetivo
+
+Atender ao requisito de negócio:
+
+"Em caso de erro, um usuário pode ser notificado (e-mail ou outro meio de comunicação)."
+
+Implementar uma notificação automática quando o Worker falhar no processamento de um vídeo.
+
+Passo 1 — Criar uma conta no Mailtrap
+
+Objetivo
+
+Obter um servidor SMTP de testes sem necessidade de enviar e-mails reais.
+
+O que fazer
+
+Criar uma conta gratuita no Mailtrap.
+Criar uma Inbox.
+Copiar as credenciais SMTP:
+Host
+Porta
+Usuário
+Senha
+Passo 2 — Configurar variáveis de ambiente
+
+Objetivo
+
+Evitar credenciais fixas no código.
+
+O que fazer
+
+Adicionar no Docker Compose/Kubernetes:
+
+SMTP_HOST
+SMTP_PORT
+SMTP_USER
+SMTP_PASSWORD
+SMTP_FROM
+Passo 3 — Criar um módulo de envio de e-mail
+
+Objetivo
+
+Isolar toda a lógica de SMTP.
+
+O que fazer
+
+Criar um novo arquivo:
+
+worker/email_service.py
+
+Responsável por:
+
+abrir conexão SMTP
+autenticar
+montar a mensagem
+enviar o e-mail
+Passo 4 — Disparar o e-mail somente em caso de erro
+
+Objetivo
+
+Notificar apenas quando o processamento falhar.
+
+O que fazer
+
+No bloco de tratamento de exceção do Worker:
+
+atualizar status para ERRO (já existente)
+chamar
+send_error_email(...)
+Passo 5 — Conteúdo do e-mail
+
+Objetivo
+
+Facilitar a identificação da falha.
+
+Conteúdo sugerido
+
+vídeo
+usuário
+horário
+mensagem da exceção
+
+Exemplo:
+
+Assunto:
+Falha no processamento do vídeo
+
+Corpo:
+
+O processamento do vídeo falhou.
+
+Vídeo:
+video.mp4
+
+Erro:
+FFmpeg exited with code 1
+
+Data:
+2026-07-28 15:33
+Passo 6 — Atualizar documentação
+
+Objetivo
+
+Facilitar a execução pelo avaliador.
+
+O que fazer
+
+Adicionar no README:
+
+criação da conta Mailtrap
+onde colocar as credenciais
+como visualizar os e-mails enviados
+Resultado esperado
+
+Quando ocorrer qualquer exceção durante o processamento:
+
+Upload
+      ↓
+RabbitMQ
+      ↓
+Worker
+      ↓
+Erro
+      ↓
+Atualiza banco
+      ↓
+Envia e-mail
