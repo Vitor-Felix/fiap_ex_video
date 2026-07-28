@@ -9,6 +9,7 @@ from db import (
     update_status_to_processing,
 )
 
+from email_service import send_error_email
 from processor import process_video
 from metrics import processed_total, start_metrics_server
 
@@ -34,12 +35,15 @@ def connect_rabbitmq():
 def callback(ch, method, properties, body):
     """Callback executado a cada nova mensagem recebida da fila."""
     video_id = None
+    video_name = "desconhecido"
 
     try:
         data = json.loads(body.decode("utf-8"))
 
         video_id = data.get("video_id")
         video_path = data.get("video_path")
+        # Extrai o nome do arquivo do path para usar nas notificações
+        video_name = os.path.basename(video_path) if video_path else "desconhecido"
 
         print(f"📩 [MENSAGEM RECEBIDA] Video ID: {video_id} | Path: {video_path}")
 
@@ -102,6 +106,8 @@ def callback(ch, method, properties, body):
                 error_message,
             )
 
+            send_error_email(video_id, video_name, error_message)
+
             ch.basic_nack(
                 delivery_tag=method.delivery_tag,
                 requeue=False,
@@ -125,6 +131,7 @@ def callback(ch, method, properties, body):
                 video_id,
                 str(e),
             )
+            send_error_email(video_id, video_name, str(e))
 
         ch.basic_nack(
             delivery_tag=method.delivery_tag,

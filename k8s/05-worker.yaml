@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: worker
-        image: fiap-worker:v2
+        image: fiap-worker:v3
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8000
@@ -32,6 +32,36 @@ spec:
             secretKeyRef:
               name: fiap-secrets
               key: RABBITMQ_URL
+        - name: SMTP_HOST
+          valueFrom:
+            secretKeyRef:
+              name: fiap-secrets
+              key: SMTP_HOST
+        - name: SMTP_PORT
+          valueFrom:
+            secretKeyRef:
+              name: fiap-secrets
+              key: SMTP_PORT
+        - name: SMTP_USER
+          valueFrom:
+            secretKeyRef:
+              name: fiap-secrets
+              key: SMTP_USER
+        - name: SMTP_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: fiap-secrets
+              key: SMTP_PASSWORD
+        - name: SMTP_FROM
+          valueFrom:
+            secretKeyRef:
+              name: fiap-secrets
+              key: SMTP_FROM
+        - name: SMTP_TO
+          valueFrom:
+            secretKeyRef:
+              name: fiap-secrets
+              key: SMTP_TO
         volumeMounts:
         - name: shared-storage
           mountPath: /app/uploads

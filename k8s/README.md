@@ -96,7 +96,7 @@ docker build -t fiap-api:v2 -f Dockerfile .
 ### Worker Python
 
 ```bash
-docker build -t fiap-worker:v2 -f worker/Dockerfile ./worker
+docker build -t fiap-worker:v3 -f worker/Dockerfile ./worker
 ```
 
 Valide localmente:
@@ -109,7 +109,7 @@ Esperado:
 
 ```text
 fiap-api       v2
-fiap-worker    v2
+fiap-worker    v3
 ```
 
 ---
@@ -120,7 +120,7 @@ Envie as imagens para dentro do cluster:
 
 ```bash
 minikube image load fiap-api:v2
-minikube image load fiap-worker:v2
+minikube image load fiap-worker:v3
 ```
 
 Valide:
@@ -133,7 +133,7 @@ Esperado:
 
 ```text
 fiap-api:v2
-fiap-worker:v2
+fiap-worker:v3
 ```
 
 ---
@@ -173,6 +173,25 @@ Aplique todos os recursos:
 ```bash
 kubectl apply -f k8s/
 ```
+
+> ⚠️ **Credenciais Mailtrap (notificação por e-mail):** o arquivo `k8s/00-configmap-secrets.yaml` contém
+> placeholders `CHANGE_ME` para as variáveis SMTP. Após o `kubectl apply -f k8s/`, atualize o Secret
+> com as credenciais reais usando o comando abaixo — ele não altera nenhum arquivo do repositório:
+>
+> ```bash
+> kubectl patch secret fiap-secrets \
+>   --type='json' \
+>   -p='[
+>     {"op":"replace","path":"/data/SMTP_USER","value":"'$(echo -n "SEU_SMTP_USER" | base64)'"},
+>     {"op":"replace","path":"/data/SMTP_PASSWORD","value":"'$(echo -n "SUA_SMTP_PASSWORD" | base64)'"}
+>   ]'
+> ```
+>
+> Depois reinicie o worker para ele carregar os novos valores:
+>
+> ```bash
+> kubectl rollout restart deployment/fiap-worker-deployment
+> ```
 
 Acompanhe a inicialização:
 
