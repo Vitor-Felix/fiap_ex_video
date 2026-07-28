@@ -75,7 +75,7 @@ Foco de Avaliação FIAP: Processamento em Background paralelo e Notificação e
 🚀 Milestone 5: Orquestração (Kubernetes) e Observabilidade
 Objetivo: Sair do nível local comum e preparar a aplicação para os padrões de produção em escala exigidos pelos avaliadores.
 
-[ ] Issue 5.1: Mapear Manifestos Kubernetes (K8s)
+[x] Issue 5.1: Mapear Manifestos Kubernetes (K8s)
 
 O que fazer: Criar uma pasta k8s/ na raiz do projeto contendo os arquivos YAML básicos de Deployment, Service e ConfigMap para a API Go, o Worker e o banco. O foco aqui é provar documentalmente que o desenho da aplicação suporta escalabilidade horizontal via K8s.
 
