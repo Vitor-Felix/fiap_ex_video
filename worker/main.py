@@ -174,4 +174,3 @@ if __name__ == "__main__":
     start_metrics_server()
 
     start_worker()
-    

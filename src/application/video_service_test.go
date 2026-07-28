@@ -85,3 +85,51 @@ func TestVideoService_ProcessUpload_Error(t *testing.T) {
 		t.Errorf("A mensagem NÃO deveria ter ido para a fila em caso de erro no banco")
 	}
 }
+
+// ==========================================
+// 4. TESTANDO O CAMINHO: BROKER FALHA APÓS INSERT
+// ==========================================
+
+// fakeBrokerError simula o RabbitMQ indisponível
+type fakeBrokerError struct{}
+
+func (f *fakeBrokerError) PublishVideoPending(videoID, videoPath string) error {
+	return fmt.Errorf("connection refused: rabbitmq offline")
+}
+
+// fakeRepoWithUpdateError permite verificar se UpdateVideoError foi chamado
+type fakeRepoWithUpdateError struct {
+	ErrorUpdated bool
+}
+
+func (f *fakeRepoWithUpdateError) InsertVideo(userID, originalName, storagePath string) (string, error) {
+	return "uuid-broker-test", nil
+}
+func (f *fakeRepoWithUpdateError) UpdateVideoSuccess(id, zipPath string, frameCount int) error {
+	return nil
+}
+func (f *fakeRepoWithUpdateError) UpdateVideoError(id, errorMessage string) error {
+	f.ErrorUpdated = true
+	return nil
+}
+func (f *fakeRepoWithUpdateError) GetVideosByUser(userID string) ([]entities.Video, error) {
+	return nil, nil
+}
+
+func TestVideoService_ProcessUpload_BrokerError_MarksVideoAsError(t *testing.T) {
+	repo := &fakeRepoWithUpdateError{}
+	broker := &fakeBrokerError{}
+	service := NewVideoService(repo, broker)
+
+	result := service.ProcessUpload("user_123", "video.mp4", "/tmp/video.mp4", "20260728")
+
+	// Deve retornar falha
+	if result.Success {
+		t.Error("esperava falha quando o broker está indisponível, mas retornou sucesso")
+	}
+
+	// A compensação deve ter marcado o vídeo como ERRO no banco
+	if !repo.ErrorUpdated {
+		t.Error("esperava que UpdateVideoError fosse chamado como compensação, mas não foi")
+	}
+}
