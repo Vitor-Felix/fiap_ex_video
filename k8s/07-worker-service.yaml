@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker-service
+spec:
+  selector:
+    app: fiap-worker
+  ports:
+  - port: 8000
+    targetPort: 8000
+  type: ClusterIP
+  
