@@ -85,6 +85,61 @@ Os artefatos complementares e os logs de evolução do projeto podem ser consult
 
 ---
 
+## 🧪 Executando o CI Localmente
+
+Os comandos abaixo replicam exatamente o que o GitHub Actions executa nos jobs `go-lint-and-test` e `python-lint-and-test`. Rode-os antes de abrir um PR para garantir que a pipeline passará.
+
+### Pré-requisitos
+- Go 1.21+
+- golangci-lint (`go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest`)
+- Python 3.12+ com `venv`
+
+---
+
+### Go — Lint
+
+```bash
+cd src
+golangci-lint run --timeout=3m
+```
+
+### Go — Testes + Cobertura
+
+```bash
+cd src
+go test ./... -v -race -coverprofile=coverage.out -covermode=atomic
+go tool cover -func=coverage.out
+```
+
+---
+
+### Python (Worker) — Lint
+
+```bash
+# Cria e ativa um ambiente virtual com flake8
+python3 -m venv .venv
+source .venv/bin/activate
+pip install flake8==7.1.1
+
+# Roda o lint a partir do diretório worker
+cd worker
+flake8 . \
+  --exclude=__pycache__,tests/__pycache__ \
+  --max-line-length=120 \
+  --extend-ignore=W503 \
+  --statistics
+```
+
+### Python (Worker) — Testes
+
+```bash
+# Não requer banco de dados nem RabbitMQ — todas as dependências externas são mockadas
+cd worker
+python3 -m unittest discover -s tests -p "test_*.py" -v
+```
+
+---
+
 ## ☸️ Guia de Execução Local (Kubernetes via Minikube)
 Para a execução completa no Minikube, incluindo detalhes de pré-requisitos, build das imagens, criação de ConfigMaps, deployment dos manifestos, acesso à aplicação, PostgreSQL, Prometheus e seed de usuários, consulte o guia detalhado em [k8s/README.md](k8s/README.md).
 
