@@ -7,6 +7,7 @@ from db import (
     update_status_to_completed,
     update_status_to_error,
     update_status_to_processing,
+    get_user_email_by_video_id,
 )
 
 from email_service import send_error_email
@@ -106,7 +107,8 @@ def callback(ch, method, properties, body):
                 error_message,
             )
 
-            send_error_email(video_id, video_name, error_message)
+            user_email = get_user_email_by_video_id(video_id)
+            send_error_email(video_id, video_name, error_message, recipient=user_email)
 
             ch.basic_nack(
                 delivery_tag=method.delivery_tag,
@@ -131,7 +133,8 @@ def callback(ch, method, properties, body):
                 video_id,
                 str(e),
             )
-            send_error_email(video_id, video_name, str(e))
+            user_email = get_user_email_by_video_id(video_id)
+            send_error_email(video_id, video_name, str(e), recipient=user_email)
 
         ch.basic_nack(
             delivery_tag=method.delivery_tag,
