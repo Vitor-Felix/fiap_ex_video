@@ -88,3 +88,30 @@ def update_status_to_error(video_id: str, error_message: str) -> bool:
     finally:
         if conn:
             conn.close()
+
+
+def get_user_email_by_video_id(video_id: str) -> str:
+    """
+    Retorna o e-mail do dono do vídeo fazendo JOIN entre videos e users.
+    Retorna string vazia se não encontrado ou se o usuário não tiver e-mail cadastrado.
+    """
+    query = """
+        SELECT COALESCE(u.email, '')
+        FROM videos v
+        JOIN users u ON u.id = v.user_id
+        WHERE v.id = %s;
+    """
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cursor:
+            cursor.execute(query, (video_id,))
+            row = cursor.fetchone()
+            return row[0] if row else ""
+    except Exception as e:
+        print(f"ERRO BANCO DE DADOS ao buscar e-mail do vídeo {video_id}: {e}")
+        return ""
+    finally:
+        if conn:
+            conn.close()

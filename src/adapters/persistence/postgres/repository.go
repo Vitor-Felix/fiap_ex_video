@@ -154,6 +154,7 @@ func (r *Repository) GetUserByUsername(username string) (*entities.User, error) 
 		SELECT id,
 		       username,
 		       password_hash,
+		       COALESCE(email, ''),
 		       created_at
 		FROM users
 		WHERE username = $1`
@@ -164,6 +165,7 @@ func (r *Repository) GetUserByUsername(username string) (*entities.User, error) 
 		&user.ID,
 		&user.Username,
 		&user.PasswordHash,
+		&user.Email,
 		&user.CreatedAt,
 	)
 

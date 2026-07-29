@@ -21,6 +21,13 @@ O projeto agora conta com **persistência de dados relacional** para gerenciar o
 
 A aplicação está estruturada de forma modular em Go, centralizando o tráfego em um servidor HTTP e persistindo o ciclo de vida do vídeo em um container PostgreSQL dedicado.
 
+### Desenho da Arquitetura
+
+![Desenho da Arquitetura](docs/Desenho%20Arquitetura.png)
+
+> Versão detalhada com fluxo interno de cada componente e sequência de um upload completo disponível em [`docs/arch_detailed.md`](docs/arch_detailed.md).  
+> Fonte Mermaid do diagrama de entrega em [`docs/arch.md`](docs/arch.md).
+
 ### Componentes Ativos:
 
 | Componente | Tecnologia | Papel Atual no Ecossistema |
@@ -203,11 +210,11 @@ Resumo rápido:
 ```bash
 minikube start
 
-docker build -t fiap-api:v2 -f Dockerfile .
-docker build -t fiap-worker:v3 -f worker/Dockerfile ./worker
+docker build -t fiap-api:v3 -f Dockerfile .
+docker build -t fiap-worker:v4 -f worker/Dockerfile ./worker
 
-minikube image load fiap-api:v2
-minikube image load fiap-worker:v3
+minikube image load fiap-api:v3
+minikube image load fiap-worker:v4
 
 kubectl create configmap nginx-config --from-file=nginx/nginx.conf
 kubectl create configmap postgres-init-script --from-file=db/init.sql
