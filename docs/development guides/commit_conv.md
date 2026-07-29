@@ -11,3 +11,4 @@
 | 🧪 | `test:` | Testing-related changes | `🧪 test: Add FII scraper unit tests` |
 | 🌱 | `seed:` | Initial setup (repo, boilerplate) | `🌱 seed: Initialize project structure` |
 | 🔒 | `security:` | Security patches | `🔒 security: Fix API key exposure` |
+.
