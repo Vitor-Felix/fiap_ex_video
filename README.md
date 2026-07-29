@@ -210,11 +210,11 @@ Resumo rápido:
 ```bash
 minikube start
 
-docker build -t fiap-api:v2 -f Dockerfile .
-docker build -t fiap-worker:v3 -f worker/Dockerfile ./worker
+docker build -t fiap-api:v3 -f Dockerfile .
+docker build -t fiap-worker:v4 -f worker/Dockerfile ./worker
 
-minikube image load fiap-api:v2
-minikube image load fiap-worker:v3
+minikube image load fiap-api:v3
+minikube image load fiap-worker:v4
 
 kubectl create configmap nginx-config --from-file=nginx/nginx.conf
 kubectl create configmap postgres-init-script --from-file=db/init.sql

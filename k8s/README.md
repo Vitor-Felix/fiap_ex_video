@@ -90,13 +90,13 @@ O Minikube possui um ambiente Docker próprio. Portanto, as imagens precisam ser
 ### API Go
 
 ```bash
-docker build -t fiap-api:v2 -f Dockerfile .
+docker build -t fiap-api:v3 -f Dockerfile .
 ```
 
 ### Worker Python
 
 ```bash
-docker build -t fiap-worker:v3 -f worker/Dockerfile ./worker
+docker build -t fiap-worker:v4 -f worker/Dockerfile ./worker
 ```
 
 Valide localmente:
@@ -108,8 +108,8 @@ docker images | grep fiap
 Esperado:
 
 ```text
-fiap-api       v2
-fiap-worker    v3
+fiap-api       v3
+fiap-worker    v4
 ```
 
 ---
@@ -119,8 +119,8 @@ fiap-worker    v3
 Envie as imagens para dentro do cluster:
 
 ```bash
-minikube image load fiap-api:v2
-minikube image load fiap-worker:v3
+minikube image load fiap-api:v3
+minikube image load fiap-worker:v4
 ```
 
 Valide:
@@ -132,8 +132,8 @@ minikube image ls | grep fiap
 Esperado:
 
 ```text
-fiap-api:v2
-fiap-worker:v3
+fiap-api:v3
+fiap-worker:v4
 ```
 
 ---
@@ -250,6 +250,18 @@ Host: localhost
 Port: 5432
 Database: fiap_x_db
 User: fiap_user
+```
+
+---
+
+## 🗃️ 8.5. Migration — adicionar coluna email
+
+> ⚠️ Este passo é necessário se o volume do PostgreSQL já existia antes desta versão.
+> Se o cluster foi criado do zero com o `init.sql` atual, a coluna já existe e pode pular.
+
+```bash
+kubectl exec deployment/postgres-deployment -- psql -U fiap_user -d fiap_x_db \
+  -c "ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR(255);"
 ```
 
 ---
