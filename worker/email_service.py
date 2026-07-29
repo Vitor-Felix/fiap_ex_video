@@ -16,15 +16,30 @@ def _get_smtp_config() -> dict:
     }
 
 
-def send_error_email(video_id: str, video_name: str, error_message: str) -> None:
+def send_error_email(
+    video_id: str,
+    video_name: str,
+    error_message: str,
+    recipient: str = "",
+) -> None:
     """
     Dispara um e-mail de alerta quando o processamento de um vídeo falha.
-    Falhas no envio são apenas logadas — não devem interromper o fluxo principal.
+
+    O destinatário é resolvido na seguinte ordem:
+      1. e-mail do usuário dono do vídeo (parâmetro recipient)
+      2. fallback: variável de ambiente SMTP_TO
+    Falhas no envio são apenas logadas — não interrompem o fluxo principal.
     """
     cfg = _get_smtp_config()
 
     if not cfg["user"] or not cfg["password"]:
         print("⚠️  [EMAIL] Credenciais SMTP não configuradas. Pulando envio.")
+        return
+
+    # Resolve destinatário: e-mail do usuário ou fallback de ambiente
+    to_address = recipient.strip() if recipient and recipient.strip() else cfg["to"]
+    if not to_address:
+        print("⚠️  [EMAIL] Nenhum destinatário disponível. Pulando envio.")
         return
 
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -72,7 +87,7 @@ def send_error_email(video_id: str, video_name: str, error_message: str) -> None
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
     msg["From"] = cfg["from"]
-    msg["To"] = cfg["to"]
+    msg["To"] = to_address
     msg.attach(MIMEText(body_plain, "plain"))
     msg.attach(MIMEText(body_html, "html"))
 
@@ -81,8 +96,8 @@ def send_error_email(video_id: str, video_name: str, error_message: str) -> None
             server.ehlo()
             server.starttls()
             server.login(cfg["user"], cfg["password"])
-            server.sendmail(cfg["from"], [cfg["to"]], msg.as_string())
-        print(f"📧 [EMAIL] Alerta enviado para {cfg['to']} — vídeo {video_id}")
+            server.sendmail(cfg["from"], [to_address], msg.as_string())
+        print(f"📧 [EMAIL] Alerta enviado para {to_address} — vídeo {video_id}")
     except Exception as exc:
         # Nunca deixa o e-mail derrubar o fluxo principal
         print(f"❌ [EMAIL] Falha ao enviar alerta: {exc}")

@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: api
-        image: fiap-api:v2
+        image: fiap-api:v3
         imagePullPolicy: IfNotPresent
         envFrom:
         - configMapRef:
