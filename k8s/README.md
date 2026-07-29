@@ -259,17 +259,24 @@ User: fiap_user
 Como ainda não existe tela de cadastro, execute o seguinte SQL no banco:
 
 ```sql
-INSERT INTO users (id, username, password_hash, created_at)
+INSERT INTO users (id, username, password_hash, email, created_at)
 VALUES 
-    (gen_random_uuid(), 'admin', crypt('123456', gen_salt('bf')), NOW()),
-    (gen_random_uuid(), 'dev', crypt('123456', gen_salt('bf')), NOW());
+    (gen_random_uuid(), 'admin', crypt('123456', gen_salt('bf')), 'admin@fiap-x.local', NOW()),
+    (gen_random_uuid(), 'dev',   crypt('123456', gen_salt('bf')), 'dev@fiap-x.local',   NOW());
 ```
+
+> 💡 **Para testar notificações por e-mail:** substitua o campo `email` pelo endereço real da sua
+> conta Mailtrap. Qualquer falha de processamento disparará o alerta para esse endereço:
+>
+> ```sql
+> UPDATE users SET email = 'seu@email.com' WHERE username = 'admin';
+> ```
 
 Credenciais:
 
 ```text
 admin / 123456
-dev / 123456
+dev   / 123456
 ```
 
 ---
